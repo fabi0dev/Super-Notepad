@@ -1,6 +1,6 @@
-# Super Notepad Desktop
+# Super Note Desktop
 
-Janela nativa (Tauri v2) para o Super Notepad. **Não** é uma segunda
+Janela nativa (Tauri v2) para o Super Note. **Não** é uma segunda
 implementação do frontend: o app sobe o backend Python
 (`python -m super_notepad --no-open --port <porta>`), que serve o SPA e as
 rotas de notas, e aponta a webview para ele.

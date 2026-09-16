@@ -176,7 +176,7 @@ export function installTrayNavigation(
   return () => window.removeEventListener(APP_NAVIGATE_EVENT, onNav);
 }
 
-/** Mostra/esconde a bolinha vermelha ao lado do ícone do Super Notepad na bandeja. */
+/** Mostra/esconde a bolinha vermelha ao lado do ícone do Super Note na bandeja. */
 export function setEcoRecordingTray(active: boolean): void {
   const core = tauriCore();
   if (!core) return;
@@ -205,7 +205,7 @@ export function closeWindow(): void {
 }
 
 /**
- * Manter o Super Notepad rodando em segundo plano ao fechar a janela.
+ * Manter o Super Note rodando em segundo plano ao fechar a janela.
  *
  * Ligado, fechar a janela apenas a esconde — o servidor e o agendador de
  * tarefas (sincronização de e-mail etc.) seguem vivos, e a bandeja traz a
@@ -248,7 +248,7 @@ export async function sendTestNotification(): Promise<string | null> {
   try {
     await core.invoke("notify", {
       request: {
-        title: "Super Notepad",
+        title: "Super Note",
         body: "Notificações ativadas — você será avisado sobre e-mails e respostas.",
         force: true,
       },
@@ -404,7 +404,7 @@ function shouldSend(key: string, windowMs: number = DEDUP_MS): boolean {
 /**
  * O texto é em primeira pessoa, como o agente falaria.
  *
- * A versão anterior dizia «O Super Notepad terminou o turno»: fala de si na terceira
+ * A versão anterior dizia «O Super Note terminou o turno»: fala de si na terceira
  * pessoa, e «turno» é vocabulário nosso — quem usa não pensa em turnos, pensa
  * numa resposta que estava esperando.
  *
@@ -567,15 +567,15 @@ export function notifyDelivery(
   const sid = (sessionId || "").trim();
   if (!sid) return;
   const corpo = plainPreview((preview || "").trim());
-  const titulo = (title || "").trim() || "Super Notepad";
-  const texto = corpo || "Nova mensagem do Super Notepad";
+  const titulo = (title || "").trim() || "Super Note";
+  const texto = corpo || "Nova mensagem do Super Note";
   // Registra na central (com deeplink) mesmo quando a notificação do SO é
   // suprimida por foco — é justo o que o usuário quer rever depois. O TÍTULO da
   // central é humano: o nome da conversa quando há; senão uma frase, nunca só
-  // "Super Notepad".
+  // "Super Note".
   pushNotification({
     kind: "delivery",
-    title: (title || "").trim() || "Nova mensagem do Super Notepad",
+    title: (title || "").trim() || "Nova mensagem do Super Note",
     body: texto,
     target: `/chat?resume=${encodeURIComponent(sid)}`,
   });

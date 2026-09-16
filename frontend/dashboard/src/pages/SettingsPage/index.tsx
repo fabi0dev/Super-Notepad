@@ -5,11 +5,11 @@ import { cn } from "@/lib/utils";
 import { isDesktopApp } from "@/lib/desktopNotifications";
 
 /**
- * Tela de Configurações do Super Notepad.
+ * Tela de Configurações do Super Note.
  *
  * Expõe o que o app persiste: o tema (claro/escuro/sistema) e o fundo
  * transparente da janela (só no app desktop). Abre pelo menu
- * "Super Notepad → Configurações…" (⌘,) e pela navegação `/ajustes`.
+ * "Super Note → Configurações…" (⌘,) e pela navegação `/ajustes`.
  */
 export default function SettingsPage() {
   const navigate = useNavigate();

@@ -44,7 +44,7 @@ export function composerPlaceholderForMode(
  * Seleção COMBINADA do seletor de modo do composer. Funde os dois eixos numa
  * escolha visual de 3 estados:
  * - `agent`/`plan` → agent_mode (executar vs só planejar);
- * - `automatico` → run_mode "automatico" (o Super Notepad decide Início/Code por
+ * - `automatico` → run_mode "automatico" (o Super Note decide Início/Code por
  *   mensagem), sempre com agent_mode "agent".
  */
 export type ComposerSelection = "agent" | "plan" | "automatico";
@@ -62,7 +62,7 @@ export const COMPOSER_SELECTIONS: readonly ComposerSelectionOption[] = [
   {
     id: "automatico",
     label: "Automático",
-    hint: "O Super Notepad escolhe as ferramentas por mensagem",
+    hint: "O Super Note escolhe as ferramentas por mensagem",
   },
 ] as const;
 

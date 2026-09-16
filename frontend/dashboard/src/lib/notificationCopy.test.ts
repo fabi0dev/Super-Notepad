@@ -121,7 +121,7 @@ describe("conclusão", () => {
 
   it("sem conversa, o título é o rótulo neutro do app", () => {
     const copy = turnCompleteCopy(undefined);
-    expect(copy.title).toBe("Super Notepad");
+    expect(copy.title).toBe("Super Note");
     expect(copy.body).toBe(CORPO_NEUTRO);
   });
 
@@ -130,7 +130,7 @@ describe("conclusão", () => {
     // rótulo do app. Rodar várias vezes garante que não há sorteio escondido.
     for (let i = 0; i < 30; i += 1) {
       const semConversa = turnCompleteCopy(undefined);
-      expect(semConversa.title).toBe("Super Notepad");
+      expect(semConversa.title).toBe("Super Note");
       expect(semConversa.body).toBe(CORPO_NEUTRO);
 
       const comConversa = turnCompleteCopy("Migrar o billing");
@@ -164,7 +164,7 @@ describe("tom", () => {
     const todas = Object.values(V).flatMap((lista) => [...lista]);
     for (const texto of todas) {
       expect(texto).not.toMatch(/turno/i);
-      expect(texto).not.toMatch(/\bO Super Notepad\b/);
+      expect(texto).not.toMatch(/\bO Super Note\b/);
     }
   });
 });
@@ -220,7 +220,7 @@ describe("resumo da resposta", () => {
 describe("conclusão com contexto", () => {
   it("o resumo concreto é o corpo", () => {
     const copy = turnCompleteCopy(undefined, "Commit e push feitos.");
-    expect(copy.title).toBe("Super Notepad");
+    expect(copy.title).toBe("Super Note");
     expect(copy.body).toBe("Commit e push feitos.");
   });
 

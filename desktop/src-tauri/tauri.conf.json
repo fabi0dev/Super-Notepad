@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Super Notepad",
+  "productName": "Super Note",
   "version": "0.1.0",
   "identifier": "com.supernotepad.desktop",
   "build": {

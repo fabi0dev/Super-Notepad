@@ -1,4 +1,4 @@
-# Super Notepad — Web UI
+# Super Note — Web UI
 
 Frontend do app de notas: um único app React que ocupa a tela toda
 (a `NotesPage`). O backend Python (`super_notepad`) serve este bundle já

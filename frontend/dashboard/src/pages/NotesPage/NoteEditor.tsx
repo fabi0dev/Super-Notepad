@@ -80,7 +80,7 @@ function getMarkdown(editor: Editor): string {
 
 /** Envia um arquivo e insere no cursor: imagem vira ![](url); os demais viram
  *  um link [📎 nome](url). Em ambos os casos a referência fica no markdown, então
- *  sobrevive ao salvar e o Super Notepad (que lê markdown) enxerga o anexo. */
+ *  sobrevive ao salvar e o Super Note (que lê markdown) enxerga o anexo. */
 async function uploadAndInsert(editor: Editor, file: File): Promise<void> {
   const res = await api.notesUploadAttachment(file);
   if (res.kind === "image" || res.kind === "video") {

@@ -10,7 +10,7 @@ import { api } from "@/lib/api";
  * sem a sidebar do app e sem o corvo do splash. É por isso que abrir um app
  * "pela gaveta" (notificações) precisa passar por AQUI, e não por um
  * `navigate()` — navegar troca a rota DENTRO da janela atual, e a Home então
- * ganharia a sidebar do app (o bug de "sidebar do Super Notepad nas Notas").
+ * ganharia a sidebar do app (o bug de "sidebar do Super Note nas Notas").
  *
  * `path` pode já incluir query (`/notas?open=<id>`); `params` são mesclados por
  * cima.

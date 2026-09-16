@@ -70,7 +70,7 @@ pnpm dev              # http://localhost:5173 (proxy /api → 9010)
 
 ### 3. App do sistema (macOS)
 
-No macOS, o `./install.sh` já compila o app Tauri e instala **"Super Notepad.app"**
+No macOS, o `./install.sh` já compila o app Tauri e instala **"Super Note.app"**
 em `/Applications` — ele aparece no Launchpad e no Finder. Ao abrir, o app sobe o
 backend Python (usando o `~/.super-notepad/desktop.json` que o install escreveu,
 apontando para o venv e o `backend/` deste repositório) e mostra a janela nativa.

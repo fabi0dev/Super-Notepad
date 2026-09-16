@@ -173,7 +173,7 @@ export default function NotesPage() {
         // Restaura EXATAMENTE as abas que o usuário deixou (só as que ainda
         // existem). Nada de abrir nota sozinho: se ele fechou tudo, a área fica
         // no estado vazio ("Escolha uma nota"). Só o deeplink ?open= (ex.: o
-        // Super Notepad abrindo uma nota) força uma nota a entrar.
+        // Super Note abrindo uma nota) força uma nota a entrar.
         const deeplink = openParam && exists(openParam) ? openParam : null;
         let tabs = (loadOpenTabs() ?? []).filter(exists);
         if (deeplink && !tabs.includes(deeplink)) tabs = [...tabs, deeplink];

@@ -7,11 +7,11 @@
 #   2. Compila o frontend (gera backend/super_notepad/web_dist)
 #   3. Escreve ~/.super-notepad/desktop.json (para o shell Tauri achar o backend)
 #   4. Instala um atalho `super-notepad` em ~/.local/bin
-#   5. (macOS) Compila o app Tauri e instala "Super Notepad.app" em /Applications
+#   5. (macOS) Compila o app Tauri e instala "Super Note.app" em /Applications
 #
 # Uso:
 #   ./install.sh                 # tudo (inclui o app do sistema no macOS)
-#   ./install.sh --no-app        # não compila/instala o "Super Notepad.app"
+#   ./install.sh --no-app        # não compila/instala o "Super Note.app"
 #   ./install.sh --no-frontend   # pula o build do frontend
 #   ./install.sh --no-launcher   # não cria o atalho em ~/.local/bin
 #   ./install.sh --port 9010     # porta do backend (padrão 9010)
@@ -156,7 +156,7 @@ SH
     esac
 fi
 
-# ── App do sistema (macOS: "Super Notepad.app" em /Applications) ──────────────
+# ── App do sistema (macOS: "Super Note.app" em /Applications) ──────────────
 APP_INSTALLED=0
 if [ "$DO_APP" -eq 1 ]; then
     step "App do sistema (Tauri → /Applications)"
@@ -166,14 +166,14 @@ if [ "$DO_APP" -eq 1 ]; then
         ( cd "$ROOT/desktop" && pnpm install --silent )
         echo -e "  ${DIM}compilando o app em modo release — pode levar alguns minutos…${NC}"
         ( cd "$ROOT/desktop" && pnpm tauri build )
-        APP_SRC="$ROOT/desktop/src-tauri/target/release/bundle/macos/Super Notepad.app"
+        APP_SRC="$ROOT/desktop/src-tauri/target/release/bundle/macos/Super Note.app"
         if [ -d "$APP_SRC" ]; then
-            rm -rf "/Applications/Super Notepad.app"
+            rm -rf "/Applications/Super Note.app"
             cp -R "$APP_SRC" "/Applications/"
             # Um cp -R não avisa o macOS. Registrar no LaunchServices é o que faz
             # o app aparecer no Launchpad e no "Abrir com"; o mdimport é o que o
             # coloca no índice do Spotlight (a busca por apps depende dos dois).
-            APP_DST="/Applications/Super Notepad.app"
+            APP_DST="/Applications/Super Note.app"
             # 1) touch primeiro: marca o bundle como recém-modificado para que o
             #    Spotlight não o considere "atualizado" e pule a indexação.
             /usr/bin/touch "$APP_DST"
@@ -187,7 +187,7 @@ if [ "$DO_APP" -eq 1 ]; then
             # Obs.: não usamos "defaults write com.apple.dock ResetLaunchPad" +
             # "killall Dock" de propósito — aquilo apaga a organização do Launchpad
             # do usuário. O lsregister acima já basta para o app aparecer.
-            ok "instalado em /Applications/Super Notepad.app (registrado no Launchpad e no Spotlight)"
+            ok "instalado em /Applications/Super Note.app (registrado no Launchpad e no Spotlight)"
             APP_INSTALLED=1
         else
             warn "bundle não encontrado em: $APP_SRC"
@@ -201,7 +201,7 @@ _bar
 echo -e "${GREEN}${BOLD}  Pronto!${NC}"
 _bar
 if [ "$APP_INSTALLED" -eq 1 ]; then
-    echo -e "  ${BOLD}Super Notepad${NC} instalado — abra pelo Launchpad ou em ${BOLD}/Applications${NC}."
+    echo -e "  ${BOLD}Super Note${NC} instalado — abra pelo Launchpad ou em ${BOLD}/Applications${NC}."
 fi
 echo -e "  Iniciar pelo terminal:"
 if [ "$DO_LAUNCHER" -eq 1 ]; then

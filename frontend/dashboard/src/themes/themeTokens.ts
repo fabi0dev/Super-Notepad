@@ -1,5 +1,5 @@
 /**
- * Canonical Super Notepad palette for the web dashboard.
+ * Canonical Super Note palette for the web dashboard.
  */
 
 /**

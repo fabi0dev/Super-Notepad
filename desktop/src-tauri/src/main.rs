@@ -90,7 +90,7 @@ fn open_os_settings(section: String) {
 
 /// Traz a janela principal de volta (bandeja, reabertura no dock do macOS).
 /// Se a "main" foi DESTRUÍDA (usuário fechou a home sem "manter em segundo
-/// plano"), recria — senão o "Abrir Super Notepad" não tinha o que mostrar e só sobrava
+/// plano"), recria — senão o "Abrir Super Note" não tinha o que mostrar e só sobrava
 /// focar outra janela de app que ficou aberta (ex.: Notas).
 fn show_main_window(app: &tauri::AppHandle) {
     let window = match app.get_webview_window("main") {
@@ -107,7 +107,7 @@ fn show_main_window(app: &tauri::AppHandle) {
     let _ = window.unminimize();
     // No macOS, `set_focus()` sozinho NÃO traz a "main" para a FRENTE das
     // outras janelas do app quando uma janela própria de app (Finanças, Eco…)
-    // é a key window — o "Abrir Super Notepad" acabava só focando a janela que já
+    // é a key window — o "Abrir Super Note" acabava só focando a janela que já
     // estava aberta em vez de mostrar a home. O toggle de always-on-top força
     // o raise acima das irmãs sem deixá-la fixada no topo.
     #[cfg(target_os = "macos")]
@@ -124,7 +124,7 @@ fn show_main_window(app: &tauri::AppHandle) {
 /// edição (copiar/colar/desfazer) são itens PREDEFINIDOS que o próprio sistema
 /// resolve, para os atalhos padrão (⌘Z/⌘C/⌘V…) funcionarem no editor.
 fn build_app_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
-    // ── Super Notepad (menu do app) ──────────────────────────────────────────
+    // ── Super Note (menu do app) ──────────────────────────────────────────
     let settings = MenuItem::with_id(
         app,
         "settings",
@@ -134,10 +134,10 @@ fn build_app_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     )?;
     let app_menu = Submenu::with_items(
         app,
-        "Super Notepad",
+        "Super Note",
         true,
         &[
-            &PredefinedMenuItem::about(app, Some("Sobre o Super Notepad"), None)?,
+            &PredefinedMenuItem::about(app, Some("Sobre o Super Note"), None)?,
             &PredefinedMenuItem::separator(app)?,
             &settings,
             &PredefinedMenuItem::separator(app)?,
@@ -324,8 +324,8 @@ fn apply_backdrop_blur(window: &tauri::WebviewWindow) {
 
 /// Sincroniza o título nativo da janela com o `document.title` do painel.
 ///
-/// Toda janela nasce como "Super Notepad"; o front resolve o título por rota (ex.:
-/// "E-mail — Super Notepad") e chama isto para a barra de título nativa acompanhar.
+/// Toda janela nasce como "Super Note"; o front resolve o título por rota (ex.:
+/// "E-mail — Super Note") e chama isto para a barra de título nativa acompanhar.
 #[tauri::command]
 fn set_window_title(window: tauri::Window, title: String) {
     let _ = window.set_title(&title);
@@ -352,7 +352,7 @@ async fn pick_save_path(app: tauri::AppHandle, default_name: String) -> Option<S
     app.dialog()
         .file()
         .set_file_name(&name)
-        .add_filter("Backup do Super Notepad", &["zip"])
+        .add_filter("Backup do Super Note", &["zip"])
         .save_file(move |path| {
             let _ = tx.send(path);
         });
@@ -450,7 +450,7 @@ fn apply_seamless_chrome<'a, R: tauri::Runtime, M: tauri::Manager<R>>(
 /// isso o `on_new_window` da filha chama esta própria função de novo.
 /// Título nativo da janela a partir da rota do painel. Definido já na CRIAÇÃO
 /// (não depende do IPC da origem remota, que pode falhar) — assim cada app abre
-/// com "Super Notepad — <App>" em vez do genérico "Super Notepad". O front ainda refina depois
+/// com "Super Note — <App>" em vez do genérico "Super Note". O front ainda refina depois
 /// via `set_window_title` (ex.: estado "(Trabalhando)").
 fn title_for_url(url: &tauri::Url) -> String {
     let path = url.path().trim_end_matches('/');
@@ -470,9 +470,9 @@ fn title_for_url(url: &tauri::Url) -> String {
         "/channels" => "Canais",
         "/home" => "Início",
         "" | "/" | "/chat" => "Chat",
-        _ => return "Super Notepad".to_string(),
+        _ => return "Super Note".to_string(),
     };
-    format!("Super Notepad — {name}")
+    format!("Super Note — {name}")
 }
 
 /// Label ESTÁVEL por app/rota, para reusar a janela em vez de abrir uma nova a
@@ -625,7 +625,7 @@ fn enable_spellcheck(_window: &tauri::WebviewWindow) {}
 /// Cria a janela principal ("main"), com todos os desvios de navegação, tema,
 /// transparência e o handler de fechamento. Extraído do `setup` para poder ser
 /// RECRIADA depois: quando o usuário fecha a home sem "manter em segundo plano",
-/// a janela é destruída — e o "Abrir Super Notepad" precisa reconstruí-la, senão só
+/// a janela é destruída — e o "Abrir Super Note" precisa reconstruí-la, senão só
 /// sobrava focar outra janela de app que ficou aberta (ex.: Notas).
 fn build_main_window(handle: &tauri::AppHandle) -> tauri::Result<tauri::WebviewWindow> {
     let port = panel::port();
@@ -643,7 +643,7 @@ fn build_main_window(handle: &tauri::AppHandle) -> tauri::Result<tauri::WebviewW
         theme = boot_theme,
     );
     let mut builder = WebviewWindowBuilder::new(handle, "main", WebviewUrl::default())
-        .title("Super Notepad")
+        .title("Super Note")
         .initialization_script(&boot_theme_script)
         .inner_size(1280.0, 840.0)
         .min_inner_size(900.0, 600.0)
@@ -689,7 +689,7 @@ fn build_main_window(handle: &tauri::AppHandle) -> tauri::Result<tauri::WebviewW
     enable_spellcheck(&window);
 
     // Sem segundo plano: fechar a janela encerra o app (comportamento padrão do
-    // Tauri quando a última janela fecha). O Super Notepad é um app de primeiro
+    // Tauri quando a última janela fecha). O Super Note é um app de primeiro
     // plano — não fica rodando escondido nem tem bandeja.
 
     Ok(window)
@@ -743,7 +743,7 @@ fn main() {
             open_os_settings
         ])
         .build(tauri::generate_context!())
-        .expect("falha ao inicializar o Super Notepad Desktop")
+        .expect("falha ao inicializar o Super Note Desktop")
         .run(|app, event| match event {
             tauri::RunEvent::Exit => panel::stop_panel(),
             // macOS: clicar no ícone do dock.

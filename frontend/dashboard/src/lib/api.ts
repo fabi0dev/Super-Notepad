@@ -30,7 +30,7 @@ function parseJsonBody<T>(url: string, text: string): T {
   const trimmed = text.trimStart().toLowerCase();
   if (trimmed.startsWith("<!")) {
     throw new Error(
-      "Resposta HTML em vez de JSON — não é o backend Super Notepad (ou está desatualizado). " +
+      "Resposta HTML em vez de JSON — não é o backend Super Note (ou está desatualizado). " +
         "Use a URL que o comando imprime (ex.: http://localhost:9010/?token=…). " +
         "Se usa `pnpm dev`, defina SUPER_NOTEPAD_DASHBOARD_URL para a mesma base (ex.: http://localhost:9010) e confirme que `python -m super_notepad` está a correr. " +
         `URL obtida: ${typeof window !== "undefined" ? window.location.origin : ""}`,
@@ -118,7 +118,7 @@ async function getSessionToken(): Promise<string> {
     return _sessionToken;
   }
   throw new Error(
-    "Session token not available — page must be served by the Super Notepad dashboard server",
+    "Session token not available — page must be served by the Super Note dashboard server",
   );
 }
 
@@ -1166,7 +1166,7 @@ export const api = {
   },
   dashboardWindowToken: () =>
     fetchJSON<{ token: string }>("/api/dashboard/window-token"),
-  // Camofox gerenciado pelo Super Notepad
+  // Camofox gerenciado pelo Super Note
   camofoxStatus: () =>
     fetchJSON<CamofoxStatus>("/api/tools/camofox/status"),
   camofoxSetManaged: (enabled: boolean) =>
@@ -2074,7 +2074,7 @@ export const api = {
         body: JSON.stringify(body),
       },
     ),
-  /** O Super Notepad reestrutura o playbook (como ele usa a API) — devolve o guia novo. */
+  /** O Super Note reestrutura o playbook (como ele usa a API) — devolve o guia novo. */
   integrationsCustomRefreshGuide: (id: string) =>
     fetchJSON<{ ok: boolean; guide: string }>(
       `/api/integrations/custom/${encodeURIComponent(id)}/guide/refresh`,
@@ -2542,7 +2542,7 @@ export const api = {
     ),
 
 
-  // Reinicia o daemon do Super Notepad (aplica import, etc.). O servidor derruba a si
+  // Reinicia o daemon do Super Note (aplica import, etc.). O servidor derruba a si
   // mesmo e sobe um novo na mesma porta — a resposta pode não chegar se formos
   // mortos antes; o chamador espera a porta voltar e recarrega.
   restartDaemon: () =>
@@ -3232,7 +3232,7 @@ export interface ChatContextResponse extends GitFooterFields {
   agent_mode_label?: string;
   /** Modo Início/Code escolhido ("inicio"|"code"|"automatico"). */
   run_mode?: string;
-  /** No Automático, o modo EFETIVO que o Super Notepad resolveu no último turno. */
+  /** No Automático, o modo EFETIVO que o Super Note resolveu no último turno. */
   effective_run_mode?: string;
   effective_run_mode_label?: string;
   has_plan?: boolean;

@@ -4,7 +4,7 @@
 //! super_notepad --no-open --port <p>`), que serve o SPA e as rotas de notas, e
 //! aponta a webview para a URL local com token que o backend grava em disco.
 //!
-//! Diferente do Super Notepad, o backend do Super-Notepad roda em FOREGROUND (não destaca um
+//! Diferente do Super Note, o backend do Super-Notepad roda em FOREGROUND (não destaca um
 //! daemon), então o processo filho é mantido vivo enquanto o app estiver aberto
 //! e encerrado no `stop_panel`.
 

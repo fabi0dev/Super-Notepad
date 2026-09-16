@@ -204,7 +204,7 @@ export function turnCompleteCopy(conversa?: string, resumo?: string) {
   // ajuda quem tem várias rodando. Sem ele, um rótulo neutro; não inventamos
   // uma frase de persona para ocupar o lugar do título.
   return {
-    title: titulo || "Super Notepad",
+    title: titulo || "Super Note",
     body: contexto || CONCLUSAO_CORPO_NEUTRO,
   };
 }

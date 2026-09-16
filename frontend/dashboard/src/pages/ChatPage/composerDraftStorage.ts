@@ -50,7 +50,7 @@ export function clearComposerDraft(sessionId?: string | null): void {
 }
 
 // ---------------------------------------------------------------------------
-// Referência de nota pendente — o "Perguntar ao Super Notepad" de uma nota anexa a nota
+// Referência de nota pendente — o "Perguntar ao Super Note" de uma nota anexa a nota
 // ao chat novo como um CHIP (sem expor o id). Passa pela mesma origem (o painel
 // de chat é um iframe) via localStorage; o ChatPage consome na montagem.
 // ---------------------------------------------------------------------------

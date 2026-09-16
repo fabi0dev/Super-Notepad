@@ -1986,7 +1986,7 @@ code { font-size: 0.9375rem; }
 }
 
 /* Blocos de código MARKDOWN (resposta do agente) usam a MESMA paleta calma do
-   Super Notepad — antes carregavam o tema github-dark (arco-íris) por <link>, que
+   Super Note — antes carregavam o tema github-dark (arco-íris) por <link>, que
    destoava do canvas opaco. Agora tudo (action, diff, markdown) fala a mesma
    língua de cor. O <pre>.chat-md-pre já dá o fundo/cor base. */
 .markdown-body .hljs-keyword,

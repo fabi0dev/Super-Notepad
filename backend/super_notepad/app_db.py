@@ -1,4 +1,4 @@
-"""app.db — SQLite embarcado para os dados ESTRUTURADOS dos apps do Super Notepad.
+"""app.db — SQLite embarcado para os dados ESTRUTURADOS dos apps do Super Note.
 
 Um único arquivo (``<super_notepad_home>/app.db``). Por que SQLite e não JSON solto:
 

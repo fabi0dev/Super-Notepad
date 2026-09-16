@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Super Notepad</title>
+    <title>Super Note</title>
     <style>
       /* Tokens espelhados de frontend/dashboard/src/index.css para que a
          inicialização não pisque numa cor diferente da do painel. */
@@ -138,7 +138,7 @@
         border-radius: 0.75rem;
       }
 
-      /* Corvo quebrado: o mark do Super Notepad tingido de VERMELHO (a silhueta vem do
+      /* Corvo quebrado: o mark do Super Note tingido de VERMELHO (a silhueta vem do
          alfa via `mask`, então a cor original é ignorada), partido em duas
          metades por uma rachadura. O erro tem cara de "algo trincou". */
       .broken-crow {
@@ -449,7 +449,7 @@
 
         try {
           const { core } = await tauri();
-          // O token na URL vira cookie de sessão no próprio servidor do Super Notepad.
+          // O token na URL vira cookie de sessão no próprio servidor do Super Note.
           // O spinner fica visível até a troca (sem fade de saída — evita o
           // "some e reaparece").
           goToPanel(await core.invoke("start_panel"));

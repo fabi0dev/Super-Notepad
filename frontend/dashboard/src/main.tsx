@@ -21,7 +21,7 @@ if ("__TAURI__" in window || "__TAURI_INTERNALS__" in window) {
   root.classList.add(`sn-os-${os}`);
 }
 
-// Tema "minimalismo calmo" (mesma base visual do Super Notepad): cards sem borda, uma
+// Tema "minimalismo calmo" (mesma base visual do Super Note): cards sem borda, uma
 // cor sólida acima do canvas, acento só no glifo.
 document.documentElement.classList.add("calm");
 

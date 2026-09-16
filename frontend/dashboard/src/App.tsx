@@ -4,7 +4,7 @@ import { LoaderCircle } from "lucide-react";
 import { DesktopChrome } from "@/components/DesktopChrome";
 
 // App de Notas standalone: um único app (a página de Notas ocupa a tela toda).
-// Todo o resto do dashboard do Super Notepad foi deixado de fora do roteamento — este
+// Todo o resto do dashboard do Super Note foi deixado de fora do roteamento — este
 // entry monta só a NotesPage. Ver README.md.
 const NotesPage = lazy(() => import("@/pages/NotesPage"));
 const SettingsPage = lazy(() => import("@/pages/SettingsPage"));
@@ -13,7 +13,7 @@ export default function App() {
   const navigate = useNavigate();
 
   // Dispensa o splash do index.html assim que o app monta (não há gate de
-  // setup como no Super Notepad). Sem isto o spinner só sumiria com a animação de
+  // setup como no Super Note). Sem isto o spinner só sumiria com a animação de
   // segurança de 12s.
   useEffect(() => {
     (

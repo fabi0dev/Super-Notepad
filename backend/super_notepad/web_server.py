@@ -1,7 +1,7 @@
 """Servidor web do app de Super-Notepad.
 
 Serve o SPA (frontend React buildado em ``web_dist/``) e as rotas ``/api/notes``
-e ``/api/note-links``. Mesma arquitetura de autenticação do painel do Super Notepad —
+e ``/api/note-links``. Mesma arquitetura de autenticação do painel do Super Note —
 duas camadas derivadas de um segredo HMAC persistente (``~/.super-notepad/dashboard/``):
 
 1. **Cookie de acesso** — a URL é aberta uma vez com ``?token=...`` (gerado no
@@ -177,7 +177,7 @@ async def logout() -> JSONResponse:
 @app.get("/api/config")
 async def get_config() -> JSONResponse:
     """Config mínima que o painel de Super-Notepad lê. O app standalone não tem o painel
-    de configurações do Super Notepad — só o que o editor consulta (autocomplete off).
+    de configurações do Super Note — só o que o editor consulta (autocomplete off).
     Ponto de extensão: expor aqui as preferências de um futuro app."""
     return JSONResponse(
         {"dashboard": {"notes": {"autocomplete_enabled": False}}}

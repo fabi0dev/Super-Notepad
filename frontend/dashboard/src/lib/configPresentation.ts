@@ -1377,7 +1377,7 @@ const CATEGORY_DESCRIPTIONS: Record<string, string> = {
     "Microfone no composer web, transcrição (STT) e voz sintética (TTS).",
   eco: "Copiloto ao vivo nas gravações: tamanho da resposta e instruções extras.",
   permissions:
-    "Acessos que o sistema operacional precisa liberar para o Super Notepad trabalhar em segundo plano.",
+    "Acessos que o sistema operacional precisa liberar para o Super Note trabalhar em segundo plano.",
   notas: "Preferências do app Notas.",
 };
 
