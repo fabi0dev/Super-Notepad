@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { EditorContent, useEditor, type Editor } from "@tiptap/react";
-import { BubbleMenu } from "@tiptap/react/menus";
 import { Extension } from "@tiptap/core";
 import { Plugin, TextSelection } from "@tiptap/pm/state";
 import { StarterKit } from "@tiptap/starter-kit";
@@ -36,7 +35,6 @@ import {
   ListOrdered,
   Lock,
   Maximize2,
-  MessageSquarePlus,
   Minus,
   Paperclip,
   Quote,
@@ -49,8 +47,6 @@ import {
   Undo2,
 } from "lucide-react";
 import { api } from "@/lib/api";
-import { addChatReference } from "@/lib/chatReferences";
-import { openAppWindow } from "@/lib/openAppWindow";
 import { cn } from "@/lib/utils";
 import { platformShortcut } from "@/lib/shortcut";
 import { Tooltip } from "@/components/ui/tooltip";
@@ -184,8 +180,6 @@ interface NoteEditorProps {
    *  (ex.: aba-rascunho, que ainda não é uma nota de verdade). */
   favorite?: boolean;
   onToggleFavorite?: () => void;
-  /** "Adicionar ao chat" (bolha da seleção) abre o PAINEL LATERAL da nota. */
-  onOpenChatPanel?: () => void;
 }
 
 // A 1ª linha é sempre um TÍTULO (H1). Em vez de restringir o schema do documento
@@ -674,7 +668,6 @@ export function NoteEditor({
   locked,
   folderPath,
   onShowHistory,
-  onOpenChatPanel,
 }: NoteEditorProps) {
   // Estado dos anexos: "enviando" (spinner no clipe) e erro pontual (banner).
   const [uploading, setUploading] = useState(false);
@@ -983,20 +976,6 @@ export function NoteEditor({
     : [];
   const menuItems = imgCtxSrc ? imageMenu : editorMenu;
 
-  // "Adicionar ao chat" flutua ACIMA da seleção (bolha), não no menu de
-  // botão-direito — é uma ação sobre o trecho selecionado.
-  const addSelectionToChat = () => {
-    const { from, to } = editor.state.selection;
-    const text = editor.state.doc.textBetween(from, to, "\n").trim();
-    if (!text) return;
-    const titulo = editor.state.doc.firstChild?.textContent?.trim();
-    addChatReference(text, titulo || undefined);
-    // Abre o PAINEL LATERAL da nota (não uma janela nova). O iframe do chat lê
-    // os chips do localStorage no mount / pelo evento `storage`.
-    if (onOpenChatPanel) onOpenChatPanel();
-    else void openAppWindow("/chat", { withSidebar: true });
-  };
-
   return (
     <div className="note-editor flex min-h-0 flex-1 flex-col">
       <Toolbar
@@ -1048,25 +1027,6 @@ export function NoteEditor({
           }}
         >
           <EditorContent editor={editor} />
-          {/* Bolha ACIMA da seleção: ação sobre o trecho (não menu de sistema).
-              Só aparece com texto selecionado (from !== to). */}
-          <BubbleMenu
-            editor={editor}
-            // Nota BLOQUEADA é privada ao usuário: NÃO oferece "Adicionar ao
-            // chat" (mandaria o trecho pro Super Notepad, que não pode ver esta nota).
-            shouldShow={({ from, to }) => from !== to && !lockedRef.current}
-            options={{ placement: "top", offset: 8 }}
-          >
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={addSelectionToChat}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-solid border-(--border-strong) bg-(--popover-bg) px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-(--surface-hover)"
-            >
-              <MessageSquarePlus className="h-3.5 w-3.5 text-primary" />
-              Adicionar ao chat
-            </button>
-          </BubbleMenu>
         </div>
       </ContextMenu>
       {viewerSrc ? (

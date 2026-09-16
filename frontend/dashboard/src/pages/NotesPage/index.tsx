@@ -30,7 +30,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { api, type Note, type NoteSummary, type NoteLinkRef } from "@/lib/api";
+import { api, type Note, type NoteSummary } from "@/lib/api";
 import { cn, isoTimeAgo } from "@/lib/utils";
 import { platformShortcut } from "@/lib/shortcut";
 import { Input } from "@/components/ui/input";
@@ -39,10 +39,6 @@ import { ContextMenu, type ContextMenuEntry } from "@/components/ui/context-menu
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Toast } from "@/components/Toast";
 import { useToast } from "@/hooks/useToast";
-import {
-  clearComposerDraft,
-  writePendingNoteRef,
-} from "../ChatPage/composerDraftStorage";
 import { NoteEditor } from "./NoteEditor";
 import { FolderContextDialog } from "./FolderContextDialog";
 import { NoteHistoryModal } from "./NoteHistoryModal";
@@ -63,7 +59,6 @@ import {
 import { InlineNameInput } from "./components/InlineNameInput";
 import { NoteMoreMenu } from "./components/NoteMoreMenu";
 import { NoteTabsBar } from "./components/NoteTabsBar";
-import { NoteChatPanel } from "./components/NoteChatPanel";
 import { useSidebarResize } from "./hooks/useSidebarResize";
 import { useNoteDrag } from "./hooks/useNoteDrag";
 
@@ -105,16 +100,7 @@ export default function NotesPage() {
     onResizeMove,
     onResizeEnd,
   } = useSidebarResize();
-  // Chat sobre a nota, embutido num painel à direita (na própria tela).
-  const [chatOpen, setChatOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
-  // Qual conversa vinculada está aberta no iframe (null = novo chat) + a lista
-  // das conversas ligadas a esta nota (server-side), para ver/trocar entre elas.
-  const [activeChatSid, setActiveChatSid] = useState<string | null>(null);
-  const [linkedChats, setLinkedChats] = useState<NoteLinkRef[]>([]);
-  // Bump para forçar o iframe a recarregar numa conversa nova (mesmo indo de
-  // "nova" para "nova"), já que a key não muda sozinha nesse caso.
-  const [newNonce, setNewNonce] = useState(0);
   // No app desktop, o botão de ocultar lista vai para a faixa da janela (ao
   // lado das bolinhas); no navegador fica no cabeçalho da página.
   const [titlebarSlot, setTitlebarSlot] = useState<HTMLElement | null>(null);
@@ -372,127 +358,6 @@ export default function NotesPage() {
     },
     [flush],
   );
-
-  // Atualização em tempo real quando o agente edita a nota pelo chat. Enquanto
-  // o painel "Conversar sobre a nota" está aberto, o agente pode reescrever o
-  // arquivo (tool notes.update) — o editor não sabe disso sozinho. Sondamos o
-  // conteúdo do servidor e recarregamos SÓ quando ele mudou POR FORA, sem pisar
-  // no que o usuário está digitando aqui (guardas por `saveState` e `pending`).
-  // Refs seguram os valores mais recentes para o intervalo não se recriar a
-  // cada tecla.
-  const currentRef = useRef(current);
-  currentRef.current = current;
-  const saveStateRef = useRef(saveState);
-  saveStateRef.current = saveState;
-  useEffect(() => {
-    if (!chatOpen || !selectedId || selectedId === DRAFT_ID) return;
-    let alive = true;
-    const tick = async () => {
-      if (!alive || saveStateRef.current === "saving") return;
-      try {
-        const fresh = await api.notesGet(selectedId);
-        if (!alive) return;
-        const server = fresh.content ?? "";
-        const local = currentRef.current?.content ?? "";
-        const pend =
-          pending.current?.id === selectedId
-            ? pending.current.content
-            : undefined;
-        // Mudou no servidor (agente) quando difere do carregado E do pendente
-        // (o que o usuário digitou e ainda não salvou).
-        if (server !== local && server !== pend) setCurrent(fresh);
-      } catch {
-        /* rede — tenta no próximo tick */
-      }
-    };
-    const id = setInterval(() => void tick(), 1500);
-    return () => {
-      alive = false;
-      clearInterval(id);
-    };
-  }, [chatOpen, selectedId]);
-
-  // Uma conversa POR nota: reabre a mesma (resume) em vez de criar outra a cada
-  // abertura. Guardamos note→sessão em localStorage; o iframe do chat avisa qual
-  // sessão nasceu/retomou via postMessage, e nós a lembramos para a próxima vez.
-  const chatSrc = useMemo(() => {
-    const base = "/chat?panel=1&context=note";
-    if (!current || current.id === DRAFT_ID) return base;
-    return activeChatSid
-      ? `${base}&resume=${encodeURIComponent(activeChatSid)}`
-      : base;
-  }, [current?.id, activeChatSid]);
-
-  // Ao abrir o painel (ou trocar de nota): escolhe a conversa ativa (a última
-  // salva localmente) e carrega a lista de conversas vinculadas do servidor.
-  useEffect(() => {
-    if (!chatOpen || !current || current.id === DRAFT_ID) {
-      setLinkedChats([]);
-      return;
-    }
-    const noteId = current.id;
-    // CONTINUIDADE: ao reabrir o painel, volta para a ÚLTIMA conversa desta nota
-    // (salva em localStorage), em vez de começar uma nova e "perder" a anterior.
-    // Só cai numa conversa nova quando NÃO há nenhuma salva — e o botão "Nova
-    // conversa" continua começando do zero de propósito.
-    let saved: string | null = null;
-    try {
-      saved = localStorage.getItem(`supernotepad:note-chat:${noteId}`);
-    } catch {
-      /* localStorage indisponível */
-    }
-    if (saved) {
-      setActiveChatSid(saved);
-    } else {
-      // Sem conversa salva → nova, com o chip da nota semeado (o chat CONSOME o
-      // pending ref no mount, então precisa estar gravado antes do iframe montar).
-      writePendingNoteRef({ title: current.title });
-      setActiveChatSid(null);
-      setNewNonce((n) => n + 1);
-    }
-    let alive = true;
-    void api
-      .noteLinksForNote(noteId)
-      .then((r) => {
-        if (alive) setLinkedChats(r.sessions);
-      })
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, [chatOpen, current?.id]);
-
-  useEffect(() => {
-    const onMsg = (e: MessageEvent) => {
-      if (e.origin !== window.location.origin) return;
-      const d = e.data as { type?: string; sessionId?: string } | null;
-      if (d?.type !== "supernotepad:note-session" || !d.sessionId) return;
-      if (!selectedId || selectedId === DRAFT_ID) return;
-      try {
-        localStorage.setItem(`supernotepad:note-chat:${selectedId}`, d.sessionId);
-      } catch {
-        /* ignore */
-      }
-      const sid = d.sessionId;
-      // NÃO troca a conversa ativa aqui: a sessão nasce DENTRO do iframe já
-      // aberto (a conversa nova); mexer no activeChatSid mudaria a key do iframe
-      // e o remontaria no meio da resposta. Só registramos o vínculo e o chip.
-      // Grava o vínculo SERVER-SIDE (bidirecional): a conversa aparece no painel
-      // de notas do chat e a nota fica ligada à conversa para o agente (que só a
-      // usa sob demanda). Best-effort — o localStorage acima cobre a navegação.
-      // Ordem: noteLinkCreate(SESSÃO, NOTA). Estava trocado (nota como sessão),
-      // gravando um vínculo malformado — a nota não aparecia no painel do chat.
-      void api.noteLinkCreate(sid, selectedId).catch(() => {});
-      // Reflete na lista de conversas vinculadas sem esperar um novo fetch.
-      setLinkedChats((prev) =>
-        prev.some((s) => s.id === sid)
-          ? prev
-          : [{ id: sid, title: "Conversa" }, ...prev],
-      );
-    };
-    window.addEventListener("message", onMsg);
-    return () => window.removeEventListener("message", onMsg);
-  }, [selectedId]);
 
   const onEditorChange = useCallback(
     (markdown: string, fromNoteId: string) => {
@@ -1244,16 +1109,6 @@ export default function NotesPage() {
     );
   };
 
-  // Abre o chat sobre a nota na PRÓPRIA tela (painel à direita). A nota vai
-  // anexada como um CHIP (só o título, sem expor o id); o composer fica limpo
-  // para o usuário escrever a pergunta. O agente resolve a nota pelo título.
-  const openNoteChat = () => {
-    if (!current) return;
-    writePendingNoteRef({ title: current.title });
-    clearComposerDraft(null);
-    setChatOpen(true);
-  };
-
   // Ações que moram na barra de título (ao lado das bolinhas no desktop; num
   // cabeçalho mínimo no navegador): ocultar/mostrar a lista, ordenar, nova pasta
   // e nova nota. Ficavam soltas — parte na sidebar, parte no corpo. Juntá-las no
@@ -1555,7 +1410,6 @@ export default function NotesPage() {
                 current.id === DRAFT_ID ? undefined : () => setHistoryOpen(true)
               }
               onChange={onEditorChange}
-              onOpenChatPanel={() => setChatOpen(true)}
               saveState={saveState}
               locked={
                 current.id === DRAFT_ID
@@ -1645,48 +1499,7 @@ export default function NotesPage() {
             </div>
           )}
 
-          {/* Botão flutuante no canto inferior direito: conversar com o Super Notepad
-              sobre a nota, num chat que abre aqui mesmo (painel à direita).
-              Some em nota BLOQUEADA — o Super Notepad não vê essa nota, então não há o
-              que conversar sobre ela. (A linha do tempo virou um ícone pequeno
-              no rodapé, ao lado do contador.) */}
-          {current && !chatOpen && !current.locked ? (
-            <Tooltip content="Conversar com o Super Notepad sobre esta nota">
-              <button
-                key={current.id}
-                type="button"
-                onClick={openNoteChat}
-                aria-label="Conversar com o Super Notepad sobre esta nota"
-                className="note-crow-in absolute bottom-4 right-4 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full border border-solid border-(--border-color) bg-foreground/10 backdrop-blur-sm transition-colors hover:bg-foreground/16"
-              >
-                <Sparkles className="h-5 w-5 text-foreground/80" />
-              </button>
-            </Tooltip>
-          ) : null}
           </div>
-
-          {/* Painel de chat sobre a nota, na própria tela. Reusa o /chat inteiro
-              num iframe (mesma origem, autenticado pelo cookie), semeado com o
-              rascunho da nota. Irmão flex (não `absolute`): EMPURRA a coluna do
-              editor em vez de sobrepor — o texto reflui na largura que sobra. */}
-          {chatOpen ? (
-            <NoteChatPanel
-              current={current}
-              chatSrc={chatSrc}
-              iframeKey={`${current?.id ?? "none"}:${activeChatSid ?? `new-${newNonce}`}`}
-              linkedChats={linkedChats}
-              activeChatSid={activeChatSid}
-              onSelectChat={setActiveChatSid}
-              onNewConversation={() => {
-                // Regrava o chip da nota antes do remount (o chat o consome
-                // no mount) — senão a conversa nova nasce sem o chip.
-                if (current) writePendingNoteRef({ title: current.title });
-                setActiveChatSid(null);
-                setNewNonce((n) => n + 1);
-              }}
-              onClose={() => setChatOpen(false)}
-            />
-          ) : null}
         </section>
       </div>
 

@@ -943,21 +943,6 @@ code { font-size: 0.9375rem; }
   .note-tree-reveal { animation: none; }
 }
 
-/* Notas: o corvo (botão de conversar) "pousa" ao abrir uma nota — sobe,
-   aparece e assenta com um leve overshoot de escala. Re-dispara a cada nota
-   porque o botão é keyed pelo id da nota. */
-@keyframes note-crow-in {
-  0% { opacity: 0; transform: translateY(10px) scale(0.8); }
-  60% { opacity: 1; transform: translateY(-2px) scale(1.06); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
-}
-.note-crow-in {
-  animation: note-crow-in 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-@media (prefers-reduced-motion: reduce) {
-  .note-crow-in { animation: none; }
-}
-
 @keyframes sidebar-expand {
   from { width: 56px; }
   to { width: 200px; }
