@@ -82,6 +82,8 @@ export default function NotesPage() {
   const prevSelRef = useRef<string | null>(null);
   const [current, setCurrent] = useState<Note | null>(null);
   const [query, setQuery] = useState("");
+  // A busca fica oculta por padrão; a lupa em headerActions a revela.
+  const [searchOpen, setSearchOpen] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const { toast, showToast } = useToast();
   // Pastas EXPANDIDAS (vazio = todas fechadas: as pastas começam recolhidas).
@@ -424,8 +426,12 @@ export default function NotesPage() {
         void createNote(focusedFolderRef.current);
       } else if (k === "f") {
         e.preventDefault();
-        searchInputRef.current?.focus();
-        searchInputRef.current?.select();
+        setSidebarOpen(true);
+        setSearchOpen(true);
+        setTimeout(() => {
+          searchInputRef.current?.focus();
+          searchInputRef.current?.select();
+        }, 0);
       } else if (k === "s") {
         e.preventDefault();
         void flush();
@@ -469,8 +475,29 @@ export default function NotesPage() {
     [refreshList],
   );
 
-  // Arrastar-e-soltar de notas entre pastas (baseado em ponteiro, testável).
-  const { dragOver, ghost, suppressClick, startNoteDrag } = useNoteDrag(moveNote);
+  // Mover uma PASTA para dentro de outra (ou para a raiz): renomeia o caminho
+  // (o backend re-parenteia notas e subpastas). `target` = pasta destino ("" =
+  // raiz); o novo caminho é `destino/<nome>`.
+  const moveFolder = useCallback(
+    async (sourcePath: string, target: string) => {
+      const name = sourcePath.split("/").pop() || sourcePath;
+      const newPath = target ? `${target}/${name}` : name;
+      if (newPath === sourcePath) return;
+      try {
+        await api.notesRenameFolder(sourcePath, newPath);
+        // Mantém a pasta destino aberta para ver o resultado.
+        if (target) setExpanded((prev) => new Set(prev).add(target));
+        await refreshList();
+      } catch {
+        /* silencioso */
+      }
+    },
+    [refreshList],
+  );
+
+  // Arrastar-e-soltar de notas E pastas entre pastas (ponteiro, testável).
+  const { dragOver, ghost, suppressClick, startNoteDrag, startFolderDrag } =
+    useNoteDrag(moveNote, moveFolder);
 
   const confirmRenameNote = useCallback(
     async (id: string, name: string) => {
@@ -672,8 +699,11 @@ export default function NotesPage() {
           break;
         case "focus-search":
           setSidebarOpen(true);
-          searchInputRef.current?.focus();
-          searchInputRef.current?.select();
+          setSearchOpen(true);
+          setTimeout(() => {
+            searchInputRef.current?.focus();
+            searchInputRef.current?.select();
+          }, 0);
           break;
         case "open-file": {
           // "Abrir arquivo…": o Rust já leu o arquivo; criamos uma nota com o
@@ -986,7 +1016,17 @@ export default function NotesPage() {
         <ContextMenu items={folderMenu(node.path)}>
           <button
             type="button"
-            onClick={() => toggleFolder(node.path)}
+            onPointerDown={(e) =>
+              startFolderDrag(e, { path: node.path, name: node.name })
+            }
+            onClick={() => {
+              // Se acabou de arrastar, não alterna (o clique-de-fim-de-arraste).
+              if (suppressClick.current) {
+                suppressClick.current = false;
+                return;
+              }
+              toggleFolder(node.path);
+            }}
             aria-expanded={isOpen}
             aria-label={`Pasta ${node.name}`}
             className={cn(
@@ -1005,7 +1045,7 @@ export default function NotesPage() {
                 isOpen && "rotate-90",
               )}
             />
-            <span className="flex-1 whitespace-nowrap text-sm font-medium text-foreground">
+            <span className="flex-1 whitespace-nowrap text-sm text-foreground">
               {node.name}
             </span>
             {/* Ação rápida no hover: nova nota dentro da pasta. */}
@@ -1094,6 +1134,32 @@ export default function NotesPage() {
           className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-(--surface-hover) hover:text-foreground"
         >
           <FolderPlus className="h-4.5 w-4.5" />
+        </button>
+      </Tooltip>
+      <Tooltip content="Buscar">
+        <button
+          type="button"
+          onClick={() => {
+            setSidebarOpen(true);
+            setSearchOpen((v) => {
+              const next = !v;
+              if (next) {
+                // foca o campo assim que ele aparecer
+                setTimeout(() => searchInputRef.current?.focus(), 0);
+              } else {
+                setQuery("");
+              }
+              return next;
+            });
+          }}
+          aria-label="Buscar notas"
+          aria-pressed={searchOpen}
+          className={cn(
+            "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-(--surface-hover) hover:text-foreground",
+            searchOpen ? "bg-(--surface-hover) text-foreground" : "text-muted-foreground",
+          )}
+        >
+          <Search className="h-4.5 w-4.5" />
         </button>
       </Tooltip>
       <Tooltip content="Nova nota">
@@ -1218,41 +1284,44 @@ export default function NotesPage() {
             className="flex h-full flex-col"
             style={{ width: sidebarWidth }}
           >
-            {/* Só a busca: ordenar / nova pasta / nova nota subiram para a barra
-                de título (headerActions). A sidebar fica enxuta. */}
-            <div className="px-2.5 pt-2.5 pb-1.5">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  ref={searchInputRef}
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    // Esc limpa a busca (ou tira o foco se já vazia).
-                    if (e.key === "Escape" && query) {
-                      e.preventDefault();
-                      setQuery("");
-                    }
-                  }}
-                  placeholder={`Buscar… (${platformShortcut("⌘F")})`}
-                  className={cn("h-9 pl-8", query && "pr-8")}
-                  aria-label="Buscar notas"
-                />
-                {query ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setQuery("");
-                      searchInputRef.current?.focus();
+            {/* Busca OCULTA por padrão — a lupa em headerActions a revela.
+                Ordenar / nova pasta / nova nota moram na barra de título. */}
+            {searchOpen ? (
+              <div className="px-2.5 pt-2.5 pb-1.5">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    ref={searchInputRef}
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      // Esc limpa a busca; se já vazia, fecha o campo.
+                      if (e.key === "Escape") {
+                        e.preventDefault();
+                        if (query) setQuery("");
+                        else setSearchOpen(false);
+                      }
                     }}
-                    aria-label="Limpar busca"
-                    className="absolute right-1.5 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-(--surface-hover) hover:text-foreground"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                ) : null}
+                    placeholder={`Buscar… (${platformShortcut("⌘F")})`}
+                    className={cn("h-9 pl-8", query && "pr-8")}
+                    aria-label="Buscar notas"
+                  />
+                  {query ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setQuery("");
+                        searchInputRef.current?.focus();
+                      }}
+                      aria-label="Limpar busca"
+                      className="absolute right-1.5 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-(--surface-hover) hover:text-foreground"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  ) : null}
+                </div>
               </div>
-            </div>
+            ) : null}
 
             {/* Toda a área da lista: alvo de soltura da raiz + menu de contexto
                 (botão direito no vazio) para criar nota/pasta na raiz. */}
