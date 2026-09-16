@@ -15,12 +15,8 @@ tauri-build = { version = "2", features = [] }
 # que rejeita API privada; aqui o empacotamento é `.app`/`.dmg`.
 tauri = { version = "2", features = [
     "macos-private-api",
-    "tray-icon",
-    # Decodifica o PNG embutido da silhueta do tray (Image::from_bytes).
-    "image-png",
 ] }
-tauri-plugin-notification = "2"
-# Diálogo nativo "salvar como" (export do Backup escolhe a pasta/arquivo).
+# Diálogo nativo "salvar como" / seletor de pasta e o "Abrir arquivo" do menu.
 tauri-plugin-dialog = "2"
 # Canal oneshot para receber o resultado do diálogo sem bloquear a main thread.
 tokio = { version = "1", features = ["sync"] }
@@ -35,13 +31,6 @@ window-vibrancy = "0.6"
 # ondulado na WKWebView; é preciso o flag nativo.
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
-# Notificação nativa via UNUserNotificationCenter: reusar o MESMO identifier por
-# conversa faz o SO SUBSTITUIR a notificação anterior em vez de empilhar — o que
-# o tauri-plugin-notification não faz no desktop (ignora id/group no `show`).
-objc2-foundation = { version = "0.3", features = ["NSString", "NSError"] }
-objc2-user-notifications = "0.3"
-# Bloco de completion handler exigido por requestAuthorizationWithOptions:.
-block2 = "0.6"
 
 [profile.release]
 codegen-units = 1

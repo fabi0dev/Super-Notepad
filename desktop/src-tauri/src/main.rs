@@ -529,7 +529,6 @@ fn build_main_window(handle: &tauri::AppHandle) -> tauri::Result<tauri::WebviewW
 
 fn main() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_dialog::init())
         .menu(|handle| menu::build_app_menu(handle))
         .on_menu_event(|app, event| match event.id.as_ref() {
@@ -562,7 +561,6 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             panel::start_panel,
             panel::repair_panel,
-            notify::notify,
             workspace::reveal_path,
             workspace::open_terminal,
             set_window_title,
