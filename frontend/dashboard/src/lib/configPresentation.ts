@@ -78,10 +78,6 @@ const COMMON_USER_CONFIG_FIELDS = new Set<string>([
   "dashboard.background.mail_sync_enabled",
   "dashboard.background.mail_sync_interval_seconds",
 
-  // Autocomplete de escrita das Notas (migrado do antigo "Proativo" para o
-  // app Notas → Configurações › Notas).
-  "dashboard.notes.autocomplete_enabled",
-
   "privacy.redact_pii",
   "approvals.mode",
   // Fica junto de `approvals.mode` porque é a mesma decisão vista de outro
@@ -864,8 +860,6 @@ const FIELD_LABELS: Record<string, string> = {
   "dashboard.notifications.on_new_mail": "E-mail novo",
   "dashboard.background.mail_sync_enabled": "Sincronizar e-mail em segundo plano",
   "dashboard.background.mail_sync_interval_seconds": "Intervalo de checagem (segundos)",
-
-  "dashboard.notes.autocomplete_enabled": "Autocompletar ao escrever",
 
   "user.nickname": "Como te chamar",
   "user.personality": "Personalidade",

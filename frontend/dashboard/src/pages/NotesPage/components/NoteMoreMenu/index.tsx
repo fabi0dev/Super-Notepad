@@ -16,8 +16,6 @@ import {
   Folder,
   FolderInput,
   Link2,
-  Lock,
-  LockOpen,
   MoreHorizontal,
   Pencil,
   Printer,
@@ -44,7 +42,6 @@ export function NoteMoreMenu({
   onCopyLink,
   onCopyMarkdown,
   onToggleFavorite,
-  onToggleLock,
   onExportMd,
   onExportPdf,
   onExportHtml,
@@ -59,7 +56,6 @@ export function NoteMoreMenu({
   onCopyLink: () => void;
   onCopyMarkdown: () => void;
   onToggleFavorite: () => void;
-  onToggleLock: () => void;
   onExportMd: () => void;
   onExportPdf: () => void;
   onExportHtml: () => void;
@@ -178,14 +174,6 @@ export function NoteMoreMenu({
                     onClick={() => { close(); onToggleFavorite(); }}
                   >
                     {note.favorite ? "Desfavoritar" : "Favoritar"}
-                  </Item>
-                  <Item
-                    icon={note.locked ? LockOpen : Lock}
-                    onClick={() => { close(); onToggleLock(); }}
-                  >
-                    {note.locked
-                      ? "Desbloquear (liberar ao Super Notepad)"
-                      : "Bloquear (ocultar do Super Notepad)"}
                   </Item>
                   <Item
                     icon={Pencil}

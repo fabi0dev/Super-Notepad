@@ -18,14 +18,11 @@ import {
   FileText,
   FolderPlus,
   Link2,
-  Lock,
-  LockOpen,
   NotebookPen,
   PanelLeft,
   Pencil,
   Plus,
   Search,
-  Sparkles,
   Star,
   Trash2,
   X,
@@ -40,7 +37,6 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Toast } from "@/components/Toast";
 import { useToast } from "@/hooks/useToast";
 import { NoteEditor } from "./NoteEditor";
-import { FolderContextDialog } from "./FolderContextDialog";
 import { NoteHistoryModal } from "./NoteHistoryModal";
 import { invalidateWikiCache } from "./wikiLink";
 import { buildFolderTree, type FolderNode } from "./folderTree";
@@ -117,10 +113,6 @@ export default function NotesPage() {
   // Renomear pasta / nota inline (campo pré-preenchido).
   const [renamingPath, setRenamingPath] = useState<string | null>(null);
   const [renamingNoteId, setRenamingNoteId] = useState<string | null>(null);
-  // Diálogo de contexto da pasta (texto + tags de memória vinculadas).
-  const [folderContextPath, setFolderContextPath] = useState<string | null>(
-    null,
-  );
   // Confirmação de exclusão (o window.confirm não funciona no WKWebView).
   const [confirmDel, setConfirmDel] = useState<{
     title: string;
@@ -557,46 +549,6 @@ export default function NotesPage() {
     [refreshList],
   );
 
-  // Bloquear/desbloquear — otimista, com refresh. Bloqueada = privada: o agente
-  // não a lista, lê ou edita (barreira no backend). Não muda `updated`.
-  const toggleLock = useCallback(
-    (n: NoteSummary) => {
-      const next = !n.locked;
-      setNotes((prev) =>
-        (prev || []).map((x) => (x.id === n.id ? { ...x, locked: next } : x)),
-      );
-      void api
-        .notesLock(n.id, next)
-        .then(() => refreshList())
-        .catch(() => {
-          setNotes((prev) =>
-            (prev || []).map((x) =>
-              x.id === n.id ? { ...x, locked: n.locked } : x,
-            ),
-          );
-        });
-    },
-    [refreshList],
-  );
-
-  // Bloquear/desbloquear pede confirmação — é uma mudança de privacidade
-  // (quem o Super Notepad pode ou não ler), então não deve acontecer num clique só.
-  const requestToggleLock = useCallback(
-    (n: NoteSummary) => {
-      const locking = !n.locked;
-      setConfirmDel({
-        title: locking ? "Bloquear nota?" : "Desbloquear nota?",
-        description: locking
-          ? "O Super Notepad deixa de ver, ler e editar esta nota. Você continua com acesso normal."
-          : "O Super Notepad volta a ver, ler e poder editar esta nota.",
-        confirmLabel: locking ? "Bloquear" : "Desbloquear",
-        destructive: false,
-        run: () => toggleLock(n),
-      });
-    },
-    [toggleLock],
-  );
-
   // Exporta o markdown da nota (o mais recente — pendente de salvar, se houver).
   const currentMarkdown = useCallback(
     (id: string, fallback: string) =>
@@ -919,11 +871,6 @@ export default function NotesPage() {
         icon: Star,
         onSelect: () => toggleFavorite(n),
       },
-      {
-        label: n.locked ? "Desbloquear (liberar ao Super Notepad)" : "Bloquear (ocultar do Super Notepad)",
-        icon: n.locked ? LockOpen : Lock,
-        onSelect: () => requestToggleLock(n),
-      },
       { label: "Renomear", icon: Pencil, onSelect: () => setRenamingNoteId(n.id) },
       { label: "Duplicar", icon: Copy, onSelect: () => void duplicateNote(n) },
       {
@@ -948,7 +895,7 @@ export default function NotesPage() {
         onSelect: () => void deleteNote(n.id),
       },
     ],
-    [duplicateNote, deleteNote, copyNoteLink, openNote, toggleFavorite, requestToggleLock, exportMarkdown],
+    [duplicateNote, deleteNote, copyNoteLink, openNote, toggleFavorite, exportMarkdown],
   );
 
   // A indentação/hierarquia vem dos containers com borda-guia (ver renderFolder),
@@ -994,12 +941,6 @@ export default function NotesPage() {
         <span className="flex-1 whitespace-nowrap text-sm">
           {n.title || "Sem título"}
         </span>
-        {n.locked ? (
-          <Lock
-            className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
-            aria-label="Bloqueada — oculta do Super Notepad"
-          />
-        ) : null}
         {n.favorite ? (
           <Star
             className="h-3.5 w-3.5 shrink-0 fill-amber-400 text-amber-400"
@@ -1017,11 +958,6 @@ export default function NotesPage() {
     { label: "Nova nota aqui", icon: FilePlus2, onSelect: () => void createNote(path) },
     { label: "Nova subpasta", icon: FolderPlus, onSelect: () => startCreateFolder(path) },
     { label: "Renomear", icon: Pencil, onSelect: () => setRenamingPath(path) },
-    {
-      label: "Contexto da pasta",
-      icon: Sparkles,
-      onSelect: () => setFolderContextPath(path),
-    },
     "separator",
     {
       label: "Apagar pasta",
@@ -1411,12 +1347,6 @@ export default function NotesPage() {
               }
               onChange={onEditorChange}
               saveState={saveState}
-              locked={
-                current.id === DRAFT_ID
-                  ? undefined
-                  : (notes.find((n) => n.id === current.id)?.locked ??
-                    current.locked)
-              }
               favorite={
                 current.id === DRAFT_ID
                   ? undefined
@@ -1446,11 +1376,6 @@ export default function NotesPage() {
                   onDuplicate={() => void duplicateNote(current)}
                   onCopyLink={() => copyNoteLink(current)}
                   onToggleFavorite={() => toggleFavorite(current)}
-                  onToggleLock={() =>
-                    requestToggleLock(
-                      notes.find((n) => n.id === current.id) ?? current,
-                    )
-                  }
                   onExportMd={() => exportMarkdown(current, current.content)}
                   onExportPdf={() => void exportServer(current, "pdf", current.content)}
                   onExportHtml={() => void exportServer(current, "html", current.content)}
@@ -1517,12 +1442,6 @@ export default function NotesPage() {
           c?.run();
         }}
         onCancel={() => setConfirmDel(null)}
-      />
-
-      <FolderContextDialog
-        open={!!folderContextPath}
-        folder={folderContextPath}
-        onClose={() => setFolderContextPath(null)}
       />
 
       {current && current.id !== DRAFT_ID ? (

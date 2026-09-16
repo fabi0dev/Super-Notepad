@@ -33,7 +33,6 @@ import {
   List,
   ListChecks,
   ListOrdered,
-  Lock,
   Maximize2,
   Minus,
   Paperclip,
@@ -65,14 +64,8 @@ import {
 } from "@/components/ui/context-menu";
 import { slashCommand } from "./slashCommand";
 import { wikiLink, NOTE_LINK_SCHEME } from "./wikiLink";
-import {
-  GhostAutocomplete,
-  type GhostAutocompleteOptions,
-} from "./ghostAutocomplete";
 import { SublistShortcut } from "./sublistShortcut";
 import { CharReveal } from "./charReveal";
-import { useConfigQuery } from "@/hooks/queries/useConfig";
-import { getNestedValue } from "@/lib/nested";
 import "./editor.css";
 
 const lowlight = createLowlight(common);
@@ -167,8 +160,6 @@ interface NoteEditorProps {
   /** Estado de salvamento — vira um ícone de sync no fim da barra.
    *  "error" = a última gravação falhou (mostra alerta, não o check verde). */
   saveState?: "idle" | "saving" | "saved" | "error";
-  /** Nota bloqueada (cadeado): privada — oculta do Super Notepad. Mostra o indicador. */
-  locked?: boolean;
   /** Caminho de pastas até a nota ("Trabalho/Projetos") — breadcrumb no rodapé. */
   folderPath?: string;
   /** Abre a linha do tempo (histórico de versões). Ausente = rascunho, sem
@@ -280,7 +271,6 @@ const FirstLineTitle = Extension.create({
 
 function buildExtensions(
   onCreateNote?: (title: string) => Promise<{ id: string } | null>,
-  ghost?: GhostAutocompleteOptions,
 ) {
   return [
     FirstLineTitle,
@@ -324,7 +314,6 @@ function buildExtensions(
     wikiLink({ onCreateNote }),
     SublistShortcut,
     CharReveal,
-    ...(ghost ? [GhostAutocomplete.configure(ghost)] : []),
   ];
 }
 
@@ -375,7 +364,6 @@ function Toolbar({
   menuSlot,
   favorite,
   onToggleFavorite,
-  locked,
   uploading,
   onUpload,
 }: {
@@ -384,7 +372,6 @@ function Toolbar({
   menuSlot?: ReactNode;
   favorite?: boolean;
   onToggleFavorite?: () => void;
-  locked?: boolean;
   uploading?: boolean;
   onUpload?: (files: FileList) => void;
 }) {
@@ -560,16 +547,6 @@ function Toolbar({
 
       {/* Status de sincronização no fim da barra, após a divisória. */}
       <div className="ml-auto flex items-center gap-1 pl-1">
-        {locked ? (
-          <Tooltip content="Bloqueada — oculta do Super Notepad">
-            <span
-              aria-label="Bloqueada — oculta do Super Notepad"
-              className="inline-flex h-8 w-8 items-center justify-center text-muted-foreground"
-            >
-              <Lock className="h-4 w-4" />
-            </span>
-          </Tooltip>
-        ) : null}
         {onToggleFavorite ? (
           <Tooltip content={favorite ? "Desfavoritar" : "Favoritar"}>
             <button
@@ -665,7 +642,6 @@ export function NoteEditor({
   menuSlot,
   favorite,
   onToggleFavorite,
-  locked,
   folderPath,
   onShowHistory,
 }: NoteEditorProps) {
@@ -688,45 +664,9 @@ export function NoteEditor({
   // abaixo é quem confirma o sync).
   const syncedNoteIdRef = useRef<string | null>(null);
 
-  // Autocomplete de escrita (ghost text). A flag vem do config (ligada em
-  // Configurações › Notas) e é espelhada num ref: assim ligar/desligar vale na
-  // hora, sem remontar o editor (as deps do useEditor são só [noteId]).
-  const { data: notesConfig } = useConfigQuery();
-  const autocompleteEnabled = Boolean(
-    getNestedValue(notesConfig ?? {}, "dashboard.notes.autocomplete_enabled"),
-  );
-  const autocompleteRef = useRef(autocompleteEnabled);
-  useEffect(() => {
-    autocompleteRef.current = autocompleteEnabled;
-  }, [autocompleteEnabled]);
-
-  // Nota BLOQUEADA é privada ao usuário: o autocomplete NÃO roda nela — nem
-  // manda o conteúdo pra rede. Espelhado em ref pra valer na hora. (O backend
-  // também recusa, como barreira dupla.)
-  const lockedRef = useRef(Boolean(locked));
-  useEffect(() => {
-    lockedRef.current = Boolean(locked);
-  }, [locked]);
-
-  const ghostOptions: GhostAutocompleteOptions = {
-    enabled: () => autocompleteRef.current && !lockedRef.current,
-    fetchCompletion: async ({ prefix, suffix, context, signal }) => {
-      try {
-        const r = await api.notesAutocomplete(
-          { note_id: noteId, prefix, suffix, context },
-          signal,
-        );
-        return r.completion ?? "";
-      } catch {
-        return "";
-      }
-    },
-    debounceMs: 450,
-  };
-
   const editor = useEditor(
     {
-      extensions: buildExtensions(onCreateNote, ghostOptions),
+      extensions: buildExtensions(onCreateNote),
       content: markdown,
       editorProps: {
         attributes: {
@@ -984,7 +924,6 @@ export function NoteEditor({
         menuSlot={menuSlot}
         favorite={favorite}
         onToggleFavorite={onToggleFavorite}
-        locked={locked}
         uploading={uploading}
         onUpload={(files) =>
           uploadFiles(editor, files, setUploading, setUploadError)
