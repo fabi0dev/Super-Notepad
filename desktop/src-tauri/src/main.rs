@@ -141,13 +141,13 @@ fn build_app_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
             &PredefinedMenuItem::separator(app)?,
             &settings,
             &PredefinedMenuItem::separator(app)?,
-            &PredefinedMenuItem::services(app, None)?,
+            &PredefinedMenuItem::services(app, Some("Serviços"))?,
             &PredefinedMenuItem::separator(app)?,
-            &PredefinedMenuItem::hide(app, None)?,
-            &PredefinedMenuItem::hide_others(app, None)?,
-            &PredefinedMenuItem::show_all(app, None)?,
+            &PredefinedMenuItem::hide(app, Some("Ocultar Super Note"))?,
+            &PredefinedMenuItem::hide_others(app, Some("Ocultar Outros"))?,
+            &PredefinedMenuItem::show_all(app, Some("Mostrar Tudo"))?,
             &PredefinedMenuItem::separator(app)?,
-            &PredefinedMenuItem::quit(app, None)?,
+            &PredefinedMenuItem::quit(app, Some("Encerrar Super Note"))?,
         ],
     )?;
 
