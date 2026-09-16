@@ -6,22 +6,9 @@ mod notify;
 mod panel;
 mod workspace;
 
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Mutex;
-
-use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
-use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
+use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::webview::{NewWindowResponse, WebviewWindowBuilder};
-use tauri::{AppHandle, Manager, WebviewUrl};
-
-/// "Manter em segundo plano ao fechar" ligado? Espelha o arquivo de preferência
-/// e é lido pelo handler de fechamento da janela. Começa no valor persistido, no
-/// `.setup()`.
-static KEEP_BACKGROUND: AtomicBool = AtomicBool::new(false);
-
-/// Ícone extra na bandeja (bolinha vermelha) enquanto o Eco está gravando —
-/// clique para parar, sem abrir o menu do Super Notepad.
-static ECO_RECORD_TRAY: Mutex<Option<TrayIcon>> = Mutex::new(None);
+use tauri::{Manager, WebviewUrl};
 
 /// Lê a preferência "Fundo transparente" persistida (padrão: desligada).
 ///
@@ -50,36 +37,6 @@ fn read_boot_theme() -> String {
         "dark" | "light" | "system" => value,
         _ => "system".to_string(),
     }
-}
-
-/// Preferência "Manter o Super Notepad rodando em segundo plano ao fechar a janela".
-///
-/// Guardada em `<super_notepad_home>/desktop_keep_background` ("1"/"0", padrão desligada
-/// — sem ela, fechar a janela encerra o app como sempre). Quando ligada, fechar
-/// a janela apenas a esconde: o servidor embutido e o agendador de tarefas
-/// seguem vivos, e o ícone na bandeja traz a janela de volta ou encerra de vez.
-fn keep_background_path() -> std::path::PathBuf {
-    panel::super_notepad_home().join("desktop_keep_background")
-}
-
-fn read_keep_background_pref() -> bool {
-    std::fs::read_to_string(keep_background_path())
-        .map(|s| s.trim() == "1")
-        .unwrap_or(false)
-}
-
-/// Liga/desliga o "manter em segundo plano". Vale JÁ (memória) e no próximo
-/// arranque (arquivo). Chamado pela landing de permissões do painel.
-#[tauri::command]
-fn set_keep_background(enabled: bool) {
-    KEEP_BACKGROUND.store(enabled, Ordering::Relaxed);
-    let _ = std::fs::write(keep_background_path(), if enabled { "1" } else { "0" });
-}
-
-/// Estado atual do "manter em segundo plano" — a landing reflete o toggle.
-#[tauri::command]
-fn get_keep_background() -> bool {
-    KEEP_BACKGROUND.load(Ordering::Relaxed)
 }
 
 /// Abre a tela de ajustes do SO na seção pedida ("notifications" | "login-items").
@@ -161,148 +118,173 @@ fn show_main_window(app: &tauri::AppHandle) {
     let _ = window.set_focus();
 }
 
-/// Mostra a janela e navega o painel para uma rota via React Router (evento
-/// `supernotepad:navigate` no front — pushState+popstate sintético não atualiza a SPA).
-fn navigate_main(app: &tauri::AppHandle, path: &str) {
-    show_main_window(app);
-    if let Some(window) = app.get_webview_window("main") {
-        let path_json = serde_json::to_string(path).unwrap_or_else(|_| "\"/\"".to_string());
-        let script = format!(
-            "window.dispatchEvent(new CustomEvent('supernotepad:navigate',{{detail:{{path:{path_json}}}}}));"
-        );
-        let _ = window.eval(&script);
-    }
-}
-
-/// Abre (ou foca) a janela ENXUTA (`panel=1`) de um app do painel — a MESMA
-/// janela própria que o launcher abre (`open_internal_window` → `panel-<slug>`),
-/// e NÃO a navegação da janela principal. Navegar a principal para uma rota de
-/// app (o antigo `navigate_main`) só focava a janela atual e ainda levava a
-/// sidebar do Super Notepad para dentro do app (bug documentado em `openAppWindow.ts`).
-/// `extra` é query opcional (ex.: `new=1`).
-fn open_panel_window(app: &AppHandle, path: &str, extra: &str) {
-    let port = panel::port();
-    let mut qs = String::from("panel=1");
-    if !extra.is_empty() {
-        qs.push('&');
-        qs.push_str(extra.trim_start_matches('&'));
-    }
-    let url_str = format!("http://127.0.0.1:{port}{path}?{qs}");
-    match url_str.parse::<tauri::Url>() {
-        Ok(url) => open_internal_window(app.clone(), port, url),
-        Err(err) => notify::debug_log(&format!("URL de painel inválida ({path}): {err}")),
-    }
-}
-
-/// Abre (ou foca) a janela do Eco com `panel=1`. `extra_query` é opcional
-/// (ex.: `stop=1`) — **nunca** `record=1` ao só abrir: gravar é gesto explícito
-/// no botão vermelho.
-fn open_eco_window(app: &AppHandle, extra_query: &str) {
-    open_panel_window(app, "/eco", extra_query);
-}
-
-/// Clique no ícone vermelho da bandeja: abre o Eco com ?stop=1 (o front finaliza).
-fn request_eco_stop(app: &AppHandle) {
-    open_eco_window(app, "stop=1");
-}
-
-/// Mostra/esconde o ícone vermelho ao lado do Super Notepad na barra de menus.
-#[tauri::command]
-fn set_eco_recording(app: AppHandle, active: bool) -> Result<(), String> {
-    let mut slot = ECO_RECORD_TRAY
-        .lock()
-        .map_err(|_| "eco tray lock".to_string())?;
-    if active {
-        if slot.is_some() {
-            return Ok(());
-        }
-        let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/tray-record.png"))
-            .map_err(|e| e.to_string())?;
-        let tray = TrayIconBuilder::new()
-            .icon(icon)
-            .tooltip("Parar gravação Eco")
-            // Cor sólida — não template (senão o macOS tingiria de cinza).
-            .on_tray_icon_event(|tray, event| {
-                if let TrayIconEvent::Click {
-                    button: MouseButton::Left,
-                    button_state: MouseButtonState::Up,
-                    ..
-                } = event
-                {
-                    request_eco_stop(tray.app_handle());
-                }
-            })
-            .build(&app)
-            .map_err(|e| e.to_string())?;
-        *slot = Some(tray);
-    } else if let Some(tray) = slot.take() {
-        let _ = tray.set_visible(false);
-    }
-    Ok(())
-}
-
-/// Monta o ícone da bandeja (silhueta branca template) e o menu, com clique
-/// esquerdo trazendo a janela de volta.
-///
-/// É o que torna o "segundo plano" utilizável: com a janela escondida, a bandeja
-/// traz o app de volta, leva às áreas principais ou encerra de vez (o `app.exit`
-/// passa por cima do handler de fechar, então sai mesmo com o modo ligado).
-fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
-    let show = MenuItem::with_id(app, "show", "Abrir Super Notepad", true, None::<&str>)?;
-    let new_chat = MenuItem::with_id(app, "new-chat", "Novo chat", true, None::<&str>)?;
-    let new_note =
-        MenuItem::with_id(app, "new-note", "Nova nota", true, None::<&str>)?;
-    // Só abre o Eco — gravar é o botão vermelho (não auto-inicia).
-    let eco = MenuItem::with_id(app, "eco", "Eco", true, None::<&str>)?;
-    let mail = MenuItem::with_id(app, "mail", "E-mails", true, None::<&str>)?;
-    let tasks = MenuItem::with_id(app, "tasks", "Tarefas", true, None::<&str>)?;
-    let quit = MenuItem::with_id(app, "quit", "Sair", true, None::<&str>)?;
-    let sep1 = PredefinedMenuItem::separator(app)?;
-    let sep2 = PredefinedMenuItem::separator(app)?;
-    let sep3 = PredefinedMenuItem::separator(app)?;
-    let menu = Menu::with_items(
+/// Barra de menus nativa do app (macOS: no topo da tela; Windows/Linux: na
+/// janela). As ações que mexem na página (nova nota, buscar, ocultar lista…)
+/// são despachadas ao front por um evento `supernotepad:menu`; as de janela e de
+/// edição (copiar/colar/desfazer) são itens PREDEFINIDOS que o próprio sistema
+/// resolve, para os atalhos padrão (⌘Z/⌘C/⌘V…) funcionarem no editor.
+fn build_app_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
+    // ── Super Notepad (menu do app) ──────────────────────────────────────────
+    let settings = MenuItem::with_id(
         app,
+        "settings",
+        "Configurações…",
+        true,
+        Some("CmdOrCtrl+,"),
+    )?;
+    let app_menu = Submenu::with_items(
+        app,
+        "Super Notepad",
+        true,
         &[
-            &show, &sep1, &new_chat, &new_note, &eco, &sep2, &mail, &tasks, &sep3,
-            &quit,
+            &PredefinedMenuItem::about(app, Some("Sobre o Super Notepad"), None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &settings,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::services(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::hide(app, None)?,
+            &PredefinedMenuItem::hide_others(app, None)?,
+            &PredefinedMenuItem::show_all(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::quit(app, None)?,
         ],
     )?;
 
-    // Silhueta branca, marcada como template no macOS: a barra de menus tinge
-    // conforme o tema (claro/escuro), como os ícones nativos.
-    let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/tray.png"))?;
-    let builder = TrayIconBuilder::new()
-        .icon(icon)
-        .tooltip("Super Notepad")
-        .menu(&menu)
-        .show_menu_on_left_click(false)
-        .on_menu_event(|app, event| match event.id.as_ref() {
-            // Apps abrem na SUA janela própria (panel), não navegando a principal.
-            "new-note" => open_panel_window(app, "/notas", "new=1"),
-            "eco" => open_eco_window(app, ""),
-            "mail" => open_panel_window(app, "/mail", ""),
-            "tasks" => open_panel_window(app, "/tarefas", ""),
-            // "Abrir Super Notepad" e "Novo chat" são a própria janela principal do Super Notepad.
-            "show" => navigate_main(app, "/home"),
-            "new-chat" => navigate_main(app, "/chat"),
-            "quit" => app.exit(0),
-            _ => {}
-        })
-        .on_tray_icon_event(|tray, event| {
-            if let TrayIconEvent::Click {
-                button: MouseButton::Left,
-                button_state: MouseButtonState::Up,
-                ..
-            } = event
-            {
-                show_main_window(tray.app_handle());
+    // ── Arquivo ───────────────────────────────────────────────────────────────
+    let new_note =
+        MenuItem::with_id(app, "menu-new-note", "Nova nota", true, Some("CmdOrCtrl+N"))?;
+    let new_folder = MenuItem::with_id(
+        app,
+        "menu-new-folder",
+        "Nova pasta",
+        true,
+        Some("CmdOrCtrl+Shift+N"),
+    )?;
+    let open_file = MenuItem::with_id(
+        app,
+        "menu-open-file",
+        "Abrir arquivo…",
+        true,
+        Some("CmdOrCtrl+O"),
+    )?;
+    let file_menu = Submenu::with_items(
+        app,
+        "Arquivo",
+        true,
+        &[
+            &new_note,
+            &new_folder,
+            &PredefinedMenuItem::separator(app)?,
+            &open_file,
+        ],
+    )?;
+
+    // ── Editar (predefinidos: os atalhos de edição do sistema) ─────────────────
+    let edit_menu = Submenu::with_items(
+        app,
+        "Editar",
+        true,
+        &[
+            &PredefinedMenuItem::undo(app, Some("Desfazer"))?,
+            &PredefinedMenuItem::redo(app, Some("Refazer"))?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::cut(app, Some("Recortar"))?,
+            &PredefinedMenuItem::copy(app, Some("Copiar"))?,
+            &PredefinedMenuItem::paste(app, Some("Colar"))?,
+            &PredefinedMenuItem::select_all(app, Some("Selecionar tudo"))?,
+        ],
+    )?;
+
+    // ── Exibir ────────────────────────────────────────────────────────────────
+    let toggle_list = MenuItem::with_id(
+        app,
+        "menu-toggle-list",
+        "Mostrar/ocultar lista",
+        true,
+        Some("CmdOrCtrl+\\"),
+    )?;
+    let focus_search = MenuItem::with_id(
+        app,
+        "menu-focus-search",
+        "Buscar",
+        true,
+        Some("CmdOrCtrl+F"),
+    )?;
+    let view_menu = Submenu::with_items(
+        app,
+        "Exibir",
+        true,
+        &[&toggle_list, &focus_search],
+    )?;
+
+    // ── Janela (predefinidos) ─────────────────────────────────────────────────
+    let window_menu = Submenu::with_items(
+        app,
+        "Janela",
+        true,
+        &[
+            &PredefinedMenuItem::minimize(app, Some("Minimizar"))?,
+            &PredefinedMenuItem::maximize(app, Some("Zoom"))?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::close_window(app, Some("Fechar"))?,
+        ],
+    )?;
+
+    Menu::with_items(
+        app,
+        &[&app_menu, &file_menu, &edit_menu, &view_menu, &window_menu],
+    )
+}
+
+/// Despacha uma ação de menu ao front, na janela em foco (ou na principal). O
+/// front escuta `supernotepad:menu` e decide o que fazer (criar nota, focar a
+/// busca, navegar para os ajustes…).
+fn emit_menu_action(app: &tauri::AppHandle, action: &str) {
+    let win = app
+        .webview_windows()
+        .into_values()
+        .find(|w| w.is_focused().unwrap_or(false))
+        .or_else(|| app.get_webview_window("main"));
+    if let Some(win) = win {
+        let a = serde_json::to_string(action).unwrap_or_else(|_| "\"\"".to_string());
+        let _ = win.eval(&format!(
+            "window.dispatchEvent(new CustomEvent('supernotepad:menu',{{detail:{{action:{a}}}}}));"
+        ));
+    }
+}
+
+/// "Abrir arquivo…": seletor nativo → lê um .md/.txt → manda o conteúdo ao front
+/// criar uma nota. O diálogo é assíncrono (callback), então nada bloqueia a UI.
+fn menu_open_file(app: &tauri::AppHandle) {
+    use tauri_plugin_dialog::DialogExt;
+    let handle = app.clone();
+    app.dialog()
+        .file()
+        .add_filter("Texto e Markdown", &["md", "markdown", "txt", "text"])
+        .set_title("Abrir arquivo como nota")
+        .pick_file(move |chosen| {
+            let Some(fp) = chosen else { return };
+            let Ok(path) = fp.into_path() else { return };
+            let name = path
+                .file_name()
+                .and_then(|s| s.to_str())
+                .unwrap_or("Nota importada")
+                .to_string();
+            let content = std::fs::read_to_string(&path).unwrap_or_default();
+            let win = handle
+                .get_webview_window("main")
+                .or_else(|| handle.webview_windows().into_values().next());
+            if let Some(win) = win {
+                let n = serde_json::to_string(&name).unwrap_or_else(|_| "\"\"".to_string());
+                let c =
+                    serde_json::to_string(&content).unwrap_or_else(|_| "\"\"".to_string());
+                let _ = win.eval(&format!(
+                    "window.dispatchEvent(new CustomEvent('supernotepad:menu',\
+                     {{detail:{{action:'open-file',name:{n},content:{c}}}}}));"
+                ));
             }
         });
-    // macOS: template faz a barra de menus tingir o ícone conforme o tema.
-    #[cfg(target_os = "macos")]
-    let builder = builder.icon_as_template(true);
-    builder.build(app)?;
-    Ok(())
 }
 
 /// Aplica o desfoque do sistema atrás da janela, quando a plataforma tem um.
@@ -706,17 +688,9 @@ fn build_main_window(handle: &tauri::AppHandle) -> tauri::Result<tauri::WebviewW
     }
     enable_spellcheck(&window);
 
-    // Fechar com "manter em segundo plano" ligado apenas ESCONDE (servidor e
-    // agendador seguem vivos). Desligado, fecha e destrói como sempre.
-    let close_win = window.clone();
-    window.on_window_event(move |event| {
-        if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-            if KEEP_BACKGROUND.load(Ordering::Relaxed) {
-                api.prevent_close();
-                let _ = close_win.hide();
-            }
-        }
-    });
+    // Sem segundo plano: fechar a janela encerra o app (comportamento padrão do
+    // Tauri quando a última janela fecha). O Super Notepad é um app de primeiro
+    // plano — não fica rodando escondido nem tem bandeja.
 
     Ok(window)
 }
@@ -725,6 +699,16 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_dialog::init())
+        .menu(|handle| build_app_menu(handle))
+        .on_menu_event(|app, event| match event.id.as_ref() {
+            "settings" => emit_menu_action(app, "settings"),
+            "menu-new-note" => emit_menu_action(app, "new-note"),
+            "menu-new-folder" => emit_menu_action(app, "new-folder"),
+            "menu-toggle-list" => emit_menu_action(app, "toggle-list"),
+            "menu-focus-search" => emit_menu_action(app, "focus-search"),
+            "menu-open-file" => menu_open_file(app),
+            _ => {}
+        })
         .setup(|app| {
             let handle = app.handle();
             let port = panel::port();
@@ -736,18 +720,10 @@ fn main() {
                 Err(err) => eprintln!("[sn-desktop] {err}"),
             }
 
-            // Segundo plano: estado inicial vindo do arquivo de preferência —
-            // definido ANTES de criar a janela (o handler de fechamento o lê).
-            KEEP_BACKGROUND.store(read_keep_background_pref(), Ordering::Relaxed);
-
             // A janela principal é construída em código (não pelo tauri.conf.json)
             // porque os desvios de navegação só existem no builder. Extraída para
-            // `build_main_window` para poder ser RECRIADA pelo "Abrir Super Notepad".
+            // `build_main_window` para poder ser RECRIADA no reabrir (dock macOS).
             let _window = build_main_window(handle)?;
-
-            if let Err(err) = setup_tray(app) {
-                eprintln!("[sn-desktop] falha ao montar a bandeja: {err}");
-            }
 
             Ok(())
         })
@@ -764,10 +740,7 @@ fn main() {
             toggle_window_maximize,
             minimize_window,
             close_window,
-            set_keep_background,
-            get_keep_background,
-            open_os_settings,
-            set_eco_recording
+            open_os_settings
         ])
         .build(tauri::generate_context!())
         .expect("falha ao inicializar o Super Notepad Desktop")

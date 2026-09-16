@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { LoaderCircle } from "lucide-react";
 import { DesktopChrome } from "@/components/DesktopChrome";
 
@@ -7,8 +7,11 @@ import { DesktopChrome } from "@/components/DesktopChrome";
 // Todo o resto do dashboard do Super Notepad foi deixado de fora do roteamento — este
 // entry monta só a NotesPage. Ver README.md.
 const NotesPage = lazy(() => import("@/pages/NotesPage"));
+const SettingsPage = lazy(() => import("@/pages/SettingsPage"));
 
 export default function App() {
+  const navigate = useNavigate();
+
   // Dispensa o splash do index.html assim que o app monta (não há gate de
   // setup como no Super Notepad). Sem isto o spinner só sumiria com a animação de
   // segurança de 12s.
@@ -17,6 +20,17 @@ export default function App() {
       window as unknown as { __dismissBootSplash?: () => void }
     ).__dismissBootSplash?.();
   }, []);
+
+  // Menu nativo → app: "Configurações…" abre a tela de ajustes. As ações de
+  // nota (nova nota, buscar, lista, abrir arquivo) são tratadas na NotesPage.
+  useEffect(() => {
+    const onMenu = (e: Event) => {
+      const action = (e as CustomEvent<{ action?: string }>).detail?.action;
+      if (action === "settings") navigate("/ajustes");
+    };
+    window.addEventListener("supernotepad:menu", onMenu);
+    return () => window.removeEventListener("supernotepad:menu", onMenu);
+  }, [navigate]);
 
   return (
     <>
@@ -36,6 +50,7 @@ export default function App() {
             <Route path="/" element={<Navigate to="/notas" replace />} />
             <Route path="/notas" element={<NotesPage />} />
             <Route path="/notas/*" element={<NotesPage />} />
+            <Route path="/ajustes" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/notas" replace />} />
           </Routes>
         </Suspense>

@@ -43,7 +43,6 @@ import {
   clearComposerDraft,
   writePendingNoteRef,
 } from "../ChatPage/composerDraftStorage";
-import { APP_MARK_ON_DARK } from "@/components/AppLogo";
 import { NoteEditor } from "./NoteEditor";
 import { FolderContextDialog } from "./FolderContextDialog";
 import { NoteHistoryModal } from "./NoteHistoryModal";
@@ -835,6 +834,45 @@ export default function NotesPage() {
     }
   }, []);
 
+  // Menu nativo → ações da lista/nota. O lado Rust despacha `supernotepad:menu`;
+  // aqui reusamos os mesmos handlers dos botões (para menu e clique concordarem).
+  useEffect(() => {
+    const onMenu = (e: Event) => {
+      const detail = (e as CustomEvent<{
+        action?: string;
+        name?: string;
+        content?: string;
+      }>).detail;
+      switch (detail?.action) {
+        case "new-note":
+          void createNote(focusedFolderRef.current);
+          break;
+        case "new-folder":
+          startCreateFolder("");
+          break;
+        case "toggle-list":
+          setSidebarOpen((v) => !v);
+          break;
+        case "focus-search":
+          setSidebarOpen(true);
+          searchInputRef.current?.focus();
+          searchInputRef.current?.select();
+          break;
+        case "open-file": {
+          // "Abrir arquivo…": o Rust já leu o arquivo; criamos uma nota com o
+          // conteúdo. O título vem do nome do arquivo (sem extensão).
+          const title = (detail.name ?? "Nota importada").replace(/\.[^.]+$/, "");
+          void createNote(focusedFolderRef.current, title, detail.content ?? "");
+          break;
+        }
+        default:
+          break;
+      }
+    };
+    window.addEventListener("supernotepad:menu", onMenu);
+    return () => window.removeEventListener("supernotepad:menu", onMenu);
+  }, [createNote, startCreateFolder]);
+
   const confirmCreateFolder = useCallback(
     async (name: string) => {
       // Nome = UM segmento. "/" digitada no nome não vira aninhamento (isso é o
@@ -1621,13 +1659,7 @@ export default function NotesPage() {
                 aria-label="Conversar com o Super Notepad sobre esta nota"
                 className="note-crow-in absolute bottom-4 right-4 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full border border-solid border-(--border-color) bg-foreground/10 backdrop-blur-sm transition-colors hover:bg-foreground/16"
               >
-                {/* O corvo do Super Notepad, em branco — discreto, sem o verde chamativo. */}
-                <img
-                  src={APP_MARK_ON_DARK}
-                  alt=""
-                  aria-hidden
-                  className="h-5 w-5 object-contain [filter:brightness(0)_invert(1)]"
-                />
+                <Sparkles className="h-5 w-5 text-foreground/80" />
               </button>
             </Tooltip>
           ) : null}
