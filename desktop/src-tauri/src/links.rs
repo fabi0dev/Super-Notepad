@@ -45,16 +45,35 @@ pub fn open_in_browser(url: &Url) {
         return;
     }
 
-    let launcher = if cfg!(target_os = "macos") {
-        "open"
-    } else {
-        "xdg-open"
-    };
-
     crate::notify::debug_log(&format!("abrindo no navegador: {url}"));
 
-    let _ = Command::new(launcher)
-        .arg(url.as_str())
+    // Cada plataforma tem seu lançador do "handler padrão". No Windows é o
+    // builtin `start` do cmd — e o 1º argumento entre aspas de `start` é o
+    // TÍTULO da janela, então passamos um título vazio antes da URL para a URL
+    // não ser engolida como título.
+    #[cfg(target_os = "windows")]
+    let mut cmd = {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        let mut c = Command::new("cmd");
+        c.args(["/C", "start", "", url.as_str()])
+            .creation_flags(CREATE_NO_WINDOW);
+        c
+    };
+    #[cfg(target_os = "macos")]
+    let mut cmd = {
+        let mut c = Command::new("open");
+        c.arg(url.as_str());
+        c
+    };
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+    let mut cmd = {
+        let mut c = Command::new("xdg-open");
+        c.arg(url.as_str());
+        c
+    };
+
+    let _ = cmd
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())

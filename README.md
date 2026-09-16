@@ -90,6 +90,49 @@ SUPER_NOTEPAD_BACKEND_DIR=../backend \
 pnpm tauri dev
 ```
 
+### 4. App do sistema (Windows)
+
+No Windows, o `install.ps1` (espelho do `install.sh`) faz tudo — venv, frontend,
+`desktop.json`, atalho e o instalador NSIS. No PowerShell, a partir da raiz do repo:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install.ps1
+# .\install.ps1 -NoApp   → só o backend/frontend, sem compilar o instalador
+```
+
+Os passos manuais equivalentes estão abaixo. Os dados ficam em
+`%USERPROFILE%\.super-notepad` (espelhando o `Path.home()` do Python), e o venv
+fica em `.venv\Scripts\` em vez de `.venv/bin/`.
+
+Backend (PowerShell), a partir de `backend\`:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\pip install -r requirements.txt
+.\.venv\Scripts\python -m super_notepad --port 9010
+```
+
+Shell nativo em dev (hot-reload), a partir de `desktop\`:
+
+```powershell
+pnpm install
+$env:SUPER_NOTEPAD_PYTHON="..\backend\.venv\Scripts\python.exe"
+$env:SUPER_NOTEPAD_BACKEND_DIR="..\backend"
+pnpm tauri dev
+```
+
+Instalador nativo (`.exe` NSIS), a partir de `desktop\`:
+
+```powershell
+cd ..\frontend\dashboard; pnpm build   # gera o web_dist que o backend serve
+cd ..\..\desktop; pnpm tauri build --bundles nsis
+```
+
+O `--bundles nsis` sobrepõe o alvo `app` (que é bundle do macOS) do
+`tauri.conf.json`. Como no macOS, o app não embute o Python: aponte o venv e o
+`backend\` no `%USERPROFILE%\.super-notepad\desktop.json` (veja
+`desktop/desktop.json.example`, usando caminhos com `\` e `.venv\Scripts\python.exe`).
+
 ## Notas de arquitetura
 
 - **Banco dedicado**: os dados vivem em `~/.super-notepad/notes.db`. O motor

@@ -36,16 +36,43 @@ fn validar(raw: &str) -> Result<PathBuf, String> {
     Ok(resolvido)
 }
 
+/// Caminho pronto para entregar a lançadores do SO.
+///
+/// No Windows o `canonicalize()` devolve o caminho no formato "verbatim"
+/// (`\\?\C:\...` ou `\\?\UNC\servidor\share`), que o Explorer, o `wt` e o `cmd`
+/// não entendem. Tira o prefixo para virar um caminho normal (`C:\...` ou
+/// `\\servidor\share`). Fora do Windows devolve o caminho como está.
+fn display_path(dir: &Path) -> String {
+    let s = dir.to_string_lossy().to_string();
+    #[cfg(windows)]
+    {
+        if let Some(rest) = s.strip_prefix(r"\\?\") {
+            if let Some(unc) = rest.strip_prefix(r"UNC\") {
+                return format!(r"\\{unc}");
+            }
+            return rest.to_string();
+        }
+    }
+    s
+}
+
 /// Argumentos passados um a um — nunca uma linha de shell —, para que um
 /// caminho com espaço, aspas ou `;` seja tratado como texto e não como
 /// comando.
 fn lancar(programa: &str, args: &[&str]) -> Result<(), String> {
-    Command::new(programa)
-        .args(args)
+    let mut cmd = Command::new(programa);
+    cmd.args(args)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
+        .stderr(Stdio::null());
+    // No Windows, não deixa piscar uma janela de console ao lançar utilitários.
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+    cmd.spawn()
         .map(|_| ())
         .map_err(|e| format!("Não consegui executar {programa}: {e}"))
 }
@@ -53,43 +80,84 @@ fn lancar(programa: &str, args: &[&str]) -> Result<(), String> {
 #[tauri::command]
 pub fn reveal_path(path: String) -> Result<(), String> {
     let dir = validar(&path)?;
-    let alvo = dir.to_string_lossy().to_string();
+    let alvo = display_path(&dir);
 
     crate::notify::debug_log(&format!("revelando no gerenciador: {alvo}"));
 
-    if cfg!(target_os = "macos") {
-        lancar("open", &["-R", &alvo])
-    } else {
-        lancar("xdg-open", &[&alvo])
+    #[cfg(target_os = "macos")]
+    {
+        return lancar("open", &["-R", &alvo]);
+    }
+    #[cfg(target_os = "windows")]
+    {
+        // `/select,<dir>` abre a pasta-mãe com a pasta destacada — o análogo do
+        // "revelar" (`open -R`) do macOS. Vai numa string só porque o Explorer
+        // espera `/select,` colado ao caminho.
+        let arg = format!("/select,{alvo}");
+        return lancar("explorer", &[arg.as_str()]);
+    }
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        return lancar("xdg-open", &[&alvo]);
     }
 }
 
 #[tauri::command]
 pub fn open_terminal(path: String) -> Result<(), String> {
     let dir = validar(&path)?;
-    let alvo = dir.to_string_lossy().to_string();
+    let alvo = display_path(&dir);
 
     crate::notify::debug_log(&format!("abrindo terminal em: {alvo}"));
 
-    if cfg!(target_os = "macos") {
+    #[cfg(target_os = "macos")]
+    {
         return lancar("open", &["-a", "Terminal", &alvo]);
     }
 
-    // No Linux não há um terminal padrão único. `x-terminal-emulator` é a
-    // indireção do Debian; os outros são os emuladores mais comuns. O
-    // primeiro que existir atende.
-    let candidatos: [(&str, Vec<&str>); 4] = [
-        ("x-terminal-emulator", vec!["--working-directory", &alvo]),
-        ("gnome-terminal", vec!["--working-directory", &alvo]),
-        ("konsole", vec!["--workdir", &alvo]),
-        ("xterm", vec!["-e", "cd"]),
-    ];
-    for (programa, args) in candidatos {
-        if lancar(programa, &args).is_ok() {
-            return Ok(());
+    #[cfg(target_os = "windows")]
+    {
+        // Windows Terminal (`wt`) é o preferido quando existe (Win 11 já traz);
+        // senão cai no PowerShell e, por último, no `cmd`. O primeiro que
+        // spawnar atende.
+        let candidatos: [(&str, Vec<String>); 3] = [
+            ("wt", vec!["-d".into(), alvo.clone()]),
+            (
+                "powershell",
+                vec![
+                    "-NoExit".into(),
+                    "-Command".into(),
+                    format!("Set-Location -LiteralPath '{}'", alvo.replace('\'', "''")),
+                ],
+            ),
+            ("cmd", vec!["/K".into(), format!("cd /d \"{alvo}\"")]),
+        ];
+        for (programa, args) in candidatos {
+            let refs: Vec<&str> = args.iter().map(String::as_str).collect();
+            if lancar(programa, &refs).is_ok() {
+                return Ok(());
+            }
         }
+        return Err("Nenhum terminal encontrado.".into());
     }
-    Err("Nenhum emulador de terminal encontrado.".into())
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        // No Linux não há um terminal padrão único. `x-terminal-emulator` é a
+        // indireção do Debian; os outros são os emuladores mais comuns. O
+        // primeiro que existir atende.
+        let candidatos: [(&str, Vec<&str>); 4] = [
+            ("x-terminal-emulator", vec!["--working-directory", &alvo]),
+            ("gnome-terminal", vec!["--working-directory", &alvo]),
+            ("konsole", vec!["--workdir", &alvo]),
+            ("xterm", vec!["-e", "cd"]),
+        ];
+        for (programa, args) in candidatos {
+            if lancar(programa, &args).is_ok() {
+                return Ok(());
+            }
+        }
+        Err("Nenhum emulador de terminal encontrado.".into())
+    }
 }
 
 #[cfg(test)]

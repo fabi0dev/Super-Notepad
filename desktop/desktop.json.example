@@ -1,5 +1,5 @@
 {
-  "_comment": "Copie para ~/.super-notepad/desktop.json. Diz ao shell Tauri qual Python usar e onde está o pacote super_notepad.",
+  "_comment": "Copie para ~/.super-notepad/desktop.json (no Windows: %USERPROFILE%\\.super-notepad\\desktop.json). Diz ao shell Tauri qual Python usar e onde está o pacote super_notepad. No Windows use caminhos com \\ e o Python do venv em .venv\\Scripts\\python.exe.",
   "python": "/CAMINHO/ABSOLUTO/Super-Notepad/backend/.venv/bin/python",
   "backend_dir": "/CAMINHO/ABSOLUTO/Super-Notepad/backend",
   "port": 9010,

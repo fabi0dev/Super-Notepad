@@ -19,6 +19,19 @@ use serde::Deserialize;
 /// Tempo para a porta abrir depois de spawnar o backend.
 const READY_TIMEOUT: Duration = Duration::from_secs(60);
 
+/// Impede que subprocessos abram uma janela de console no Windows (o backend
+/// Python e os utilitários `netstat`/`wmic`/`taskkill` piscariam um terminal
+/// preto a cada arranque). No-op no Unix.
+fn hide_console(cmd: &mut Command) -> &mut Command {
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+    cmd
+}
+
 const DEFAULT_PORT: u16 = 9010;
 
 /// Processo do backend — mantido vivo enquanto o app roda; morto no encerramento.
@@ -60,8 +73,37 @@ pub(crate) fn super_notepad_home() -> PathBuf {
             return path;
         }
     }
-    let home = std::env::var_os("HOME").unwrap_or_default();
-    PathBuf::from(home).join(".super-notepad")
+    PathBuf::from(home_dir()).join(".super-notepad")
+}
+
+/// Diretório home do usuário, do mesmo jeito que o `Path.home()` do Python
+/// resolve em cada plataforma — senão o shell e o backend olhariam para pastas
+/// diferentes e o app não acharia o `desktop_url.txt`/tema/etc.
+///
+/// No Windows `HOME` costuma NÃO existir; quem vale é `USERPROFILE` (e, como o
+/// Python, o par `HOMEDRIVE`+`HOMEPATH` como último recurso). No Unix é `HOME`.
+fn home_dir() -> std::ffi::OsString {
+    #[cfg(windows)]
+    {
+        if let Some(p) = std::env::var_os("USERPROFILE").filter(|v| !v.is_empty()) {
+            return p;
+        }
+        if let (Some(drive), Some(path)) = (
+            std::env::var_os("HOMEDRIVE"),
+            std::env::var_os("HOMEPATH"),
+        ) {
+            let mut joined = drive;
+            joined.push(path);
+            if !joined.is_empty() {
+                return joined;
+            }
+        }
+        std::env::var_os("HOME").unwrap_or_default()
+    }
+    #[cfg(not(windows))]
+    {
+        std::env::var_os("HOME").unwrap_or_default()
+    }
 }
 
 pub fn port() -> u16 {
@@ -125,12 +167,24 @@ fn resolve_python() -> PathBuf {
         return configured;
     }
     if let Some(dir) = backend_dir() {
-        let venv = dir.join(".venv/bin/python");
+        // O layout do venv difere por plataforma: no Windows os executáveis
+        // ficam em `Scripts\python.exe`; no Unix em `bin/python`.
+        let venv = if cfg!(windows) {
+            dir.join(".venv").join("Scripts").join("python.exe")
+        } else {
+            dir.join(".venv").join("bin").join("python")
+        };
         if is_executable(&venv) {
             return venv;
         }
     }
-    PathBuf::from("python3")
+    // No Windows o interpretador do PATH é `python` (ou o launcher `py`); o
+    // `python3` só existe no Unix.
+    if cfg!(windows) {
+        PathBuf::from("python")
+    } else {
+        PathBuf::from("python3")
+    }
 }
 
 /// Diretório que contém o pacote `super_notepad` (a pasta `backend/`).
@@ -211,7 +265,7 @@ fn free_stale_backend(port: u16) {
     {
         // netstat lista o PID do LISTENING na porta; confirma que é nosso via
         // wmic antes de encerrar.
-        let Ok(out) = Command::new("netstat")
+        let Ok(out) = hide_console(&mut Command::new("netstat"))
             .args(["-ano", "-p", "tcp"])
             .stdin(Stdio::null())
             .output()
@@ -226,7 +280,7 @@ fn free_stale_backend(port: u16) {
             .filter(|l| l.contains(&needle) && l.contains("LISTENING"))
         {
             if let Some(pid) = line.split_whitespace().last() {
-                let is_ours = Command::new("wmic")
+                let is_ours = hide_console(&mut Command::new("wmic"))
                     .args([
                         "process",
                         "where",
@@ -239,7 +293,9 @@ fn free_stale_backend(port: u16) {
                     .map(|o| String::from_utf8_lossy(&o.stdout).contains("super_notepad"))
                     .unwrap_or(false);
                 if is_ours {
-                    let _ = Command::new("taskkill").args(["/F", "/PID", pid]).status();
+                    let _ = hide_console(&mut Command::new("taskkill"))
+                        .args(["/F", "/PID", pid])
+                        .status();
                     killed = true;
                 }
             }
@@ -260,6 +316,7 @@ fn spawn_backend(port: u16, path_override: Option<&str>) -> Result<String, Strin
     free_stale_backend(port);
 
     let mut cmd = Command::new(&python);
+    hide_console(&mut cmd);
     cmd.arg("-m")
         .arg("super_notepad")
         .arg("--no-open")
