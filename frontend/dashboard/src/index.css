@@ -46,21 +46,21 @@
   --background-alpha: 1;
 
   /* Sync with frontend/dashboard/src/themes/themeTokens.ts */
-  --primary-accent: #F04F57;
+  --primary-accent: #FF8A3D;
   /* Preenchimento sólido != cor de texto. O verde escuro é ótimo como fundo
      de texto branco (7.2:1) e some como texto sobre o canvas (2.6:1) — daí
      `bg-primary` sólido usar `--primary-fill` e `text-primary` usar
      `--primary-accent`. Ver a regra `.bg-primary` no fim do arquivo. */
-  --primary-fill: #9E2831;
+  --primary-fill: #C05E15;
   --primary-foreground: #FFFFFF;
-  --primary-accent-glow: rgba(240, 79, 87, 0.25);
+  --primary-accent-glow: rgba(255, 138, 61, 0.25);
   --secondary-accent: #F47178;
-  --selection-surface: rgba(240, 79, 87, 0.16);
-  --primary-muted: rgba(240, 79, 87, 0.10);
+  --selection-surface: rgba(255, 138, 61, 0.16);
+  --primary-muted: rgba(255, 138, 61, 0.10);
 
   /* Sidebar — acento verde (themeTokens.ts) */
-  --sidebar-active-bg: #9E2831;
-  --sidebar-hover-bg: rgba(240, 79, 87, 0.12);
+  --sidebar-active-bg: #C05E15;
+  --sidebar-hover-bg: rgba(255, 138, 61, 0.12);
   --sidebar-border-accent: rgba(255, 255, 255, 0.09);
   --sidebar-label: #77777F;
   --sidebar-fg-muted: #A3A3AC;
@@ -80,7 +80,7 @@
   --action-hover: #0A8A63;
   --action-foreground: #FFFFFF;
 
-  --warm-glow: rgba(240, 79, 87, 0.05);
+  --warm-glow: rgba(255, 138, 61, 0.05);
   --noise-opacity-mul: 0.12;
 
   /* Sync com SYSTEM_SANS em src/themes/presets.ts. */
@@ -215,7 +215,7 @@
   /* Vermelho da marca como âncora, misturado com outras cores para variar e
      distinguir: agente vermelho (marca), usuário âmbar/dourado, tags azul.
      Arestas ficam cinza discreto; o destaque (hover) é um coral mais claro. */
-  --memory-node-agent: #F04F57;
+  --memory-node-agent: #FF8A3D;
   --memory-node-user: #fbbf24;
   --memory-node-tag: #60a5fa;
   --chat-action-card-header-padding: 0.375rem 0.625rem;
@@ -280,12 +280,12 @@
   /* Código inline: vermelho da marca bem PÁLIDO e dessaturado (misturado com o
      texto), casando com o tema opaco — realce discreto, nada chamativo, e com
      contraste confortável pra leitura (não o vermelho puro). */
-  --chat-inline-code-fg: color-mix(in srgb, #f04f57 55%, var(--foreground));
-  --chat-inline-code-bg: color-mix(in srgb, #f04f57 8%, transparent);
-  --chat-inline-code-border: color-mix(in srgb, #f04f57 15%, transparent);
+  --chat-inline-code-fg: color-mix(in srgb, #FF8A3D 55%, var(--foreground));
+  --chat-inline-code-bg: color-mix(in srgb, #FF8A3D 8%, transparent);
+  --chat-inline-code-border: color-mix(in srgb, #FF8A3D 15%, transparent);
 
-  --badge-primary-bg: rgba(240, 79, 87, 0.10);
-  --badge-primary-fg: #F04F57;
+  --badge-primary-bg: rgba(255, 138, 61, 0.10);
+  --badge-primary-fg: #FF8A3D;
   --badge-success-bg: rgba(16, 185, 129, 0.14);
   --badge-success-fg: #10B981;
   --badge-destructive-bg: rgba(239, 68, 68, 0.12);
@@ -723,10 +723,10 @@ samp,
   --color-background: var(--background, #040405);
   --color-card: var(--card-bg, #0E0E0F);
   --color-card-foreground: var(--foreground, #EDEDEE);
-  --color-primary: var(--primary-accent, #F04F57);
+  --color-primary: var(--primary-accent, #FF8A3D);
   --color-primary-foreground: var(--primary-foreground, #FFFFFF);
   --color-secondary: var(--theme-secondary-surface, #0E0E0F);
-  --color-secondary-foreground: var(--primary-accent, #F04F57);
+  --color-secondary-foreground: var(--primary-accent, #FF8A3D);
   --color-muted: var(--surface, #0E0E0F);
   --color-muted-foreground: var(--muted-foreground, #9A9A9E);
   --color-accent: var(--theme-accent-surface, #191919);
@@ -747,7 +747,7 @@ samp,
   --color-warning: #F59E0B;
   --color-border: var(--border-color, #1F1F21);
   --color-input: var(--surface, #0E0E0F);
-  --color-ring: var(--primary-accent, #F04F57);
+  --color-ring: var(--primary-accent, #FF8A3D);
   --color-popover: var(--popover-bg, var(--card-bg, #0E0E0F));
   --color-popover-foreground: var(--foreground, #EDEDEE);
 
@@ -1129,7 +1129,7 @@ code { font-size: 0.9375rem; }
   /* Mesmos papéis, tons escuros: sobre painel claro os originais somem. */
   /* Alvo 3:1 — nó de grafo é objeto gráfico, não texto. Agente no vermelho da
      marca (tom claro), usuário âmbar, tags azul. */
-  --memory-node-agent: #C62A31;
+  --memory-node-agent: #BF5710;
   --memory-node-user: #fbbf24;
   --memory-node-tag: #60a5fa;
 }
@@ -2819,13 +2819,13 @@ code { font-size: 0.9375rem; }
 
 /* Sidebar — acento verde para hover/ícones; nav ativo usa --selection-surface. */
 #app-sidebar {
-  --primary-accent: #F04F57;
-  --sidebar-hover-bg: rgba(240, 79, 87, 0.12);
+  --primary-accent: #FF8A3D;
+  --sidebar-hover-bg: rgba(255, 138, 61, 0.12);
 }
 
 :root[data-theme="light"] #app-sidebar {
   /* Verde escuro: o jade do tema escuro some sobre painel claro. */
-  --primary-accent: #C62A31;
+  --primary-accent: #BF5710;
   --sidebar-hover-bg: rgba(198, 42, 49, 0.07);
   --sidebar-border-accent: #D1D5DB;
   --sidebar-label: #475569;
@@ -3502,9 +3502,9 @@ code { font-size: 0.9375rem; }
 
 :root[data-theme="light"] {
   /* Mesmo vermelho pálido do escuro, escurecido para o fundo claro. */
-  --chat-inline-code-fg: color-mix(in srgb, #f04f57 60%, #3f3f46);
-  --chat-inline-code-bg: color-mix(in srgb, #f04f57 7%, #ffffff);
-  --chat-inline-code-border: color-mix(in srgb, #f04f57 16%, #ffffff);
+  --chat-inline-code-fg: color-mix(in srgb, #FF8A3D 60%, #3f3f46);
+  --chat-inline-code-bg: color-mix(in srgb, #FF8A3D 7%, #ffffff);
+  --chat-inline-code-border: color-mix(in srgb, #FF8A3D 16%, #ffffff);
   /* Mesmas famílias do escuro, escurecidas para o fundo claro (≥4.5:1). */
   --chat-code-fg: #1a1a1f;
   --chat-code-muted: #6b6b76;
@@ -3549,11 +3549,11 @@ code { font-size: 0.9375rem; }
 }
 
 #app-sidebar .scrollbar-none::-webkit-scrollbar-thumb {
-  background: rgba(240, 79, 87, 0.22);
+  background: rgba(255, 138, 61, 0.22);
 }
 
 #app-sidebar .scrollbar-none::-webkit-scrollbar-thumb:hover {
-  background: rgba(240, 79, 87, 0.38);
+  background: rgba(255, 138, 61, 0.38);
 }
 
 /* Config modal — campos e nav mais leves no tema claro */
@@ -3864,7 +3864,7 @@ textarea.sn-field {
 
 /* ── Preenchimento primário sólido ─────────────────────────────────────────
    `text-primary` e `bg-primary` saem os dois de `--color-primary` no
-   Tailwind, mas aqui têm exigências opostas: o verde escuro `#9E2831` é
+   Tailwind, mas aqui têm exigências opostas: o verde escuro `#C05E15` é
    ótimo como FUNDO de texto branco (7.2:1) e some como TEXTO sobre o canvas
    quase preto (2.6:1). Nenhum verde único passa nos dois.
 

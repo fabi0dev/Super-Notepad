@@ -15,9 +15,9 @@
  * não confie no matiz. Se a ambiguidade incomodar, o caminho é deslocar
  * `success` para um verde mais folha (~130°), não mexer na marca.
  */
-export const APP_ACCENT = "#F04F57" as const;
+export const APP_ACCENT = "#FF8A3D" as const;
 /**
- * Primary sobre fundo claro. NÃO é o mesmo hex do escuro: `#F04F57` no branco
+ * Primary sobre fundo claro. NÃO é o mesmo hex do escuro: `#FF8A3D` no branco
  * dá 2.8:1 e não passa nem como texto nem sob texto branco.
  *
  * Este é o verde mais CLARO que ainda passa (4.8:1), e não o mais contrastado
@@ -25,7 +25,7 @@ export const APP_ACCENT = "#F04F57" as const;
  * que existia antes — e o resultado era um verde quase preto, que não se
  * reconhecia como o jade da marca. Contraste é piso, não meta.
  */
-export const APP_ACCENT_LIGHT = "#C62A31" as const;
+export const APP_ACCENT_LIGHT = "#BF5710" as const;
 
 /**
  * Verde de PREENCHIMENTO sólido (nav ativo, botão `bg-primary`) — o verde
@@ -33,22 +33,22 @@ export const APP_ACCENT_LIGHT = "#C62A31" as const;
  *
  * Precisa ser um token separado de {@link APP_ACCENT} porque os dois têm
  * exigências OPOSTAS de contraste: como texto sobre o canvas quase preto o
- * verde tem que ser claro (`#9E2831` ali dá 2.6:1 e some); como fundo de
+ * verde tem que ser claro (`#C05E15` ali dá 2.6:1 e some); como fundo de
  * texto branco tem que ser escuro. Nenhum verde único satisfaz as duas — daí
  * `text-primary` usar o acento e `bg-primary` sólido usar este.
  * No tema claro a tensão não existe e os dois são o mesmo hex.
  */
-export const APP_ACCENT_FILL_DARK = "#9E2831" as const;
-export const APP_ACCENT_FILL_LIGHT = "#C62A31" as const;
+export const APP_ACCENT_FILL_DARK = "#C05E15" as const;
+export const APP_ACCENT_FILL_LIGHT = "#BF5710" as const;
 export const APP_ACCENT_FG_DARK = "#FFFFFF" as const;
 export const APP_ACCENT_FG_LIGHT = "#FFFFFF" as const;
-export const APP_ACCENT_GLOW_DARK = "rgba(240, 79, 87, 0.25)" as const;
+export const APP_ACCENT_GLOW_DARK = "rgba(255, 138, 61, 0.25)" as const;
 export const APP_ACCENT_GLOW_LIGHT = "rgba(198, 42, 49, 0.14)" as const;
 export const APP_SECONDARY_ACCENT = "#F47178" as const;
 export const APP_SECONDARY_ACCENT_LIGHT = "#A81F27" as const;
-export const APP_WARM_GLOW_DARK = "rgba(240, 79, 87, 0.07)" as const;
+export const APP_WARM_GLOW_DARK = "rgba(255, 138, 61, 0.07)" as const;
 export const APP_WARM_GLOW_LIGHT = "rgba(198, 42, 49, 0.08)" as const;
-export const APP_SELECTION_BG = "rgba(240, 79, 87, 0.16)" as const;
+export const APP_SELECTION_BG = "rgba(255, 138, 61, 0.16)" as const;
 export const APP_SELECTION_BG_LIGHT = "rgba(198, 42, 49, 0.12)" as const;
 
 /**
@@ -66,16 +66,16 @@ export const APP_ACTION_HOVER = "#0A8A63" as const;
 export const APP_ACTION_FG = "#FFFFFF" as const;
 
 /** Subtle primary tint for icon badges and chips (not full `bg-primary`). */
-export const APP_PRIMARY_MUTED_BG = "rgba(240, 79, 87, 0.10)" as const;
+export const APP_PRIMARY_MUTED_BG = "rgba(255, 138, 61, 0.10)" as const;
 // OPACO no tema claro: com "Fundo transparente" ligado, um tint translúcido
 // deixa o papel de parede (escuro) vazar por baixo do botão e o texto
-// `text-primary` (#C62A31) some. A versão opaca (~ o mesmo composto sobre o
+// `text-primary` (#BF5710) some. A versão opaca (~ o mesmo composto sobre o
 // branco) mantém a aparência e garante contraste independente da janela.
-export const APP_PRIMARY_MUTED_BG_LIGHT = "#F6E4E4" as const;
+export const APP_PRIMARY_MUTED_BG_LIGHT = "#FBE9D6" as const;
 
 /** Dashboard sidebar — item ativo: verde escuro sólido (texto branco via `text-primary-foreground`). */
 export const APP_SIDEBAR_ACTIVE_BG = APP_ACCENT_FILL_DARK;
-export const APP_SIDEBAR_HOVER_BG = "rgba(240, 79, 87, 0.12)" as const;
+export const APP_SIDEBAR_HOVER_BG = "rgba(255, 138, 61, 0.12)" as const;
 export const APP_SIDEBAR_BORDER_DARK = "rgba(255, 255, 255, 0.07)" as const;
 export const APP_SIDEBAR_BORDER_LIGHT = "#E5E7EB" as const;
 /** Section labels (uppercase) — quieter than body chrome. */
