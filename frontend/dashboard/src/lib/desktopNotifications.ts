@@ -14,15 +14,7 @@
 import { fetchJSON } from "@/lib/api";
 import { getNestedValue } from "@/lib/nested";
 import { pushNotification } from "@/lib/notificationCenter";
-import {
-  approvalCopy,
-  questionCopy,
-  summarizeReply,
-  turnCompleteCopy,
-} from "@/lib/notificationCopy";
-import { readCachedMessages } from "@/pages/ChatPage/chatMessageCache";
-import { buildDisplaySegments } from "@/pages/ChatPage/chatDisplaySegments";
-import { shouldShowTimelineTextRow } from "@/pages/ChatPage/reasoningLabels";
+import { approvalCopy, questionCopy } from "@/lib/notificationCopy";
 
 type NotifyRequest = {
   title: string;
@@ -402,136 +394,6 @@ function shouldSend(key: string, windowMs: number = DEDUP_MS): boolean {
 }
 
 /**
- * O texto é em primeira pessoa, como o agente falaria.
- *
- * A versão anterior dizia «O Super Note terminou o turno»: fala de si na terceira
- * pessoa, e «turno» é vocabulário nosso — quem usa não pensa em turnos, pensa
- * numa resposta que estava esperando.
- *
- * Quando há título de conversa, ele vira o TÍTULO da notificação, não o
- * corpo: é a linha que o sistema mostra em negrito e a única que sobrevive
- * inteira num banner estreito. Quem tem três conversas rodando precisa
- * primeiro saber QUAL terminou.
- */
-/**
- * Resumo do FECHAMENTO do turno.
- *
- * Uma mensagem do agente não é um texto só: ela é uma sequência de segmentos
- * — falas intermediárias («Vou ver o status do repositório antes de
- * commitar»), chamadas de ferramenta, e por fim a resposta. Ler o `content`
- * da mensagem pegava uma dessas falas do meio, e a notificação anunciava a
- * intenção em vez do resultado: dizia que ia verificar o repositório num
- * turno que já tinha feito commit e push.
- *
- * O certo é o ÚLTIMO segmento de texto visível — o mesmo que a tela mostra
- * como fecho. `buildDisplaySegments` e `shouldShowTimelineTextRow` são os
- * mesmos usados pela timeline, para as duas nunca discordarem sobre qual é a
- * resposta.
- */
-function lastReplySummary(sessionId: string): string | undefined {
-  try {
-    const mensagens = readCachedMessages(sessionId);
-
-    for (let i = mensagens.length - 1; i >= 0; i -= 1) {
-      const msg = mensagens[i];
-      if (msg.role !== "assistant") continue;
-
-      const fecho = lastVisibleText(msg);
-      if (fecho) return summarizeReply(fecho);
-    }
-  } catch {
-    // Cache indisponível — a cópia canônica cobre.
-  }
-  return undefined;
-}
-
-function lastVisibleText(msg: Parameters<typeof buildDisplaySegments>[0]): string | undefined {
-  const segmentos = buildDisplaySegments(msg);
-
-  for (let i = segmentos.length - 1; i >= 0; i -= 1) {
-    const seg = segmentos[i];
-    if (seg.kind !== "text") continue;
-    const texto = seg.content.trim();
-    if (texto && shouldShowTimelineTextRow(texto)) return texto;
-  }
-
-  // Mensagem sem segmentos (histórico antigo do servidor): o corpo é o texto.
-  const conteudo = (msg.content ?? "").trim();
-  return segmentos.length === 0 && conteudo ? conteudo : undefined;
-}
-
-/**
- * Resumo do turno escrito pela LLM (evento SSE `NOTIFICATION_SUMMARY`), por
- * sessão. Chega ANTES do DONE; o DONE é o que dispara a notificação. Preferido
- * ao resumo heurístico — é ele que diz, de verdade, o que o agente fez.
- */
-const llmTurnSummary = new Map<string, string>();
-
-/** Guarda o resumo da LLM para a próxima notificação de conclusão da sessão. */
-export function setTurnNotificationSummary(
-  sessionId: string,
-  summary: string,
-): void {
-  const sid = sessionId.trim();
-  const texto = summary.trim();
-  if (!sid || !texto) return;
-  llmTurnSummary.set(sid, texto);
-  // Poda simples: sem isto o mapa cresceria uma entrada por sessão.
-  if (llmTurnSummary.size > 64) {
-    const primeiro = llmTurnSummary.keys().next().value;
-    if (primeiro && primeiro !== sid) llmTurnSummary.delete(primeiro);
-  }
-}
-
-/** Lê E remove — cada resumo vale por UM turno, para não vazar para o próximo. */
-function consumeTurnSummary(sid: string): string | undefined {
-  const texto = llmTurnSummary.get(sid);
-  if (texto !== undefined) llmTurnSummary.delete(sid);
-  return texto;
-}
-
-// Momento do último fim de turno anunciado COM resumo. O SSE DONE (que tem o
-// resumo) e o watcher global anunciam o mesmo turno com session ids às vezes
-// DIFERENTES — aí o dedup por sid não os une e sai um par, o 2º genérico (o
-// resumo já foi consumido pelo 1º). Um "concluído" SEM resumo logo depois de um
-// informativo é essa duplicata redundante, e é o que suprimimos. Não afeta duas
-// sessões distintas terminando genéricas: nenhuma marca este relógio.
-let lastInformativeTurnCompleteAt = 0;
-
-export function notifyTurnComplete(sessionId: string, label?: string): void {
-  const sid = sessionId.trim();
-  if (!sid) return;
-  // Janela longa: o SSE DONE e o watcher global anunciam o MESMO fim de turno
-  // com vários segundos de diferença; sem isto saíam duas (a 2ª já sem o resumo).
-  if (!shouldSend(`complete:${sid}`, TURN_COMPLETE_DEDUP_MS)) return;
-
-  // A LLM resume o turno (o que foi FEITO); só sem ela cai na extração
-  // heurística da última fala, e daí na frase canônica. O resumo vem em
-  // markdown (`código`, **negrito**) — o banner do SO e a central mostram texto
-  // cru, então achata como as demais notificações (aprovação/pergunta) fazem.
-  const resumoRaw = consumeTurnSummary(sid) ?? lastReplySummary(sid);
-  const resumo = resumoRaw ? plainPreview(resumoRaw) : resumoRaw;
-
-  const now = Date.now();
-  if (
-    !resumo &&
-    lastInformativeTurnCompleteAt &&
-    now - lastInformativeTurnCompleteAt < TURN_COMPLETE_DEDUP_MS
-  ) {
-    return; // duplicata genérica do informativo recém-enviado
-  }
-  if (resumo) lastInformativeTurnCompleteAt = now;
-  send({
-    ...turnCompleteCopy(label, resumo),
-    // Identifica a conversa: no macOS o lado nativo usa esta tag como
-    // identifier do UNUserNotificationCenter, então o próximo turno concluído
-    // da MESMA conversa SUBSTITUI o aviso anterior em vez de empilhar (e o
-    // threadIdentifier os agrupa). Ver desktop/src-tauri/src/notify.rs.
-    tag: `sessao:${sid}`,
-  });
-}
-
-/**
  * Limpa markdown de uma prévia para virar texto de notificação legível: cabeçalho
  * de mensagem do assistente vem em markdown (`**negrito**`, listas `- `, `#`), e
  * cru fica feio no banner do SO e na central. Achata pra uma linha só.
@@ -774,5 +636,4 @@ export function readNotifyOnApprovalFromConfig(
 /** @internal Testes */
 export function __resetDesktopNotificationsForTests(): void {
   lastSentAt.clear();
-  lastInformativeTurnCompleteAt = 0;
 }
