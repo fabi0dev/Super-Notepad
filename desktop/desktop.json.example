@@ -1,0 +1,7 @@
+{
+  "_comment": "Copie para ~/.super-notepad/desktop.json. Diz ao shell Tauri qual Python usar e onde está o pacote super_notepad.",
+  "python": "/CAMINHO/ABSOLUTO/Super-Notepad/backend/.venv/bin/python",
+  "backend_dir": "/CAMINHO/ABSOLUTO/Super-Notepad/backend",
+  "port": 9010,
+  "keep_panel": false
+}

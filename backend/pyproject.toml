@@ -1,0 +1,24 @@
+[project]
+name = "super-notepad-server"
+version = "0.1.0"
+description = "App de Super-Notepad — backend (FastAPI + SQLite)"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "pydantic>=2",
+    "python-multipart>=0.0.9",
+    "PyYAML>=6",
+    "Markdown>=3.5",
+    "xhtml2pdf>=0.2.11",
+]
+
+[project.scripts]
+super-notepad-server = "super_notepad.__main__:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["super_notepad", "super_notepad.routes"]

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Textos de justificativa das permissões de arquivo (TCC).
+
+  O macOS mostra ESTAS frases no próprio alerta "o Super Notepad deseja acessar…" em vez
+  do texto genérico. Assim, quando o usuário toca um arquivo de uma pasta
+  protegida (anexo de e-mail, referência @arquivo, algo que ele pede ao agente),
+  o alerta já explica por que e deixa claro que é sob demanda — nada em segundo
+  plano, nada enviado sem ordem. O Tauri funde este arquivo no Info.plist gerado.
+-->
+<plist version="1.0">
+<dict>
+  <key>NSDesktopFolderUsageDescription</key>
+  <string>O Super Notepad só abre um arquivo da sua Mesa quando você o anexa a um e-mail ou pede para trabalhar com ele. Nada é lido em segundo plano nem enviado sem sua ordem.</string>
+
+  <key>NSDocumentsFolderUsageDescription</key>
+  <string>O Super Notepad só abre um arquivo dos seus Documentos quando você o anexa a um e-mail ou pede para trabalhar com ele. Nada é lido em segundo plano nem enviado sem sua ordem.</string>
+
+  <key>NSDownloadsFolderUsageDescription</key>
+  <string>O Super Notepad só abre um arquivo dos seus Downloads quando você o anexa a um e-mail ou pede para trabalhar com ele. Nada é lido em segundo plano nem enviado sem sua ordem.</string>
+
+  <key>NSRemovableVolumesUsageDescription</key>
+  <string>O Super Notepad só lê de um disco externo quando você aponta um arquivo dele. Nada é lido em segundo plano nem enviado sem sua ordem.</string>
+
+  <key>NSNetworkVolumesUsageDescription</key>
+  <string>O Super Notepad só lê de uma pasta de rede quando você aponta um arquivo dela. Nada é lido em segundo plano nem enviado sem sua ordem.</string>
+
+  <!-- Microfone: ditar mensagens no chat (voz → texto). A gravação só começa
+       quando você toca o microfone no compositor; nada é captado sozinho. Sem
+       esta chave a WKWebView nem expõe o getUserMedia. -->
+  <key>NSMicrophoneUsageDescription</key>
+  <string>O Super Notepad usa o microfone só quando você toca o botão de gravar no chat, para transcrever sua fala em texto. Nada é captado em segundo plano.</string>
+</dict>
+</plist>

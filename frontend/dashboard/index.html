@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <!-- Sem fontes externas: o app usa a stack do sistema (--theme-font-sans) e
+         JetBrains Mono empacotada localmente. O 'Geist' do Google Fonts era um
+         resto NUNCA usado (o stack real é de sistema) e um <link> de folha de
+         estilo externa bloqueava o render quando sem internet. Removido para o
+         app abrir offline — Notas, Tarefas e tudo que é local funcionam sem rede. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Super Notepad</title>
+    <style>
+      /* Splash de inicialização: SÓ o spinner (sem corvo), no fundo do TEMA
+         atual — sem flash e sem esperar o React. O tema efetivo é resolvido já
+         aqui, pela mesma chave/regra do app (localStorage + prefers-color). */
+      :root {
+        color-scheme: light dark;
+      }
+      html {
+        background: #131316;
+      }
+      @media (prefers-color-scheme: light) {
+        html {
+          background: #edf0f4;
+        }
+      }
+      /* A escolha explícita (data-boot-theme) prevalece sobre o prefers. */
+      html[data-boot-theme="dark"] {
+        background: #131316;
+      }
+      html[data-boot-theme="light"] {
+        background: #edf0f4;
+      }
+      #boot-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: grid;
+        place-items: center;
+        background: #131316;
+        /* Fade de SEGURANÇA: se o React não montar, não trava para sempre. */
+        animation: boot-out 0.6s ease 12s forwards;
+      }
+      @media (prefers-color-scheme: light) {
+        #boot-splash {
+          background: #edf0f4;
+        }
+      }
+      html[data-boot-theme="dark"] #boot-splash {
+        background: #131316;
+      }
+      html[data-boot-theme="light"] #boot-splash {
+        background: #edf0f4;
+      }
+      #boot-splash.boot-done {
+        animation: boot-out 0.5s ease forwards;
+      }
+      #boot-splash .boot-inner {
+        opacity: 0;
+        transition: opacity 0.4s ease;
+      }
+      #boot-splash.boot-ready .boot-inner {
+        opacity: 1;
+      }
+      #boot-splash .boot-spinner {
+        width: 26px;
+        height: 26px;
+        /* Trilho neutro semitransparente: lê bem no claro e no escuro. */
+        border: 2.5px solid rgba(128, 128, 128, 0.28);
+        border-top-color: #f04f57;
+        border-radius: 50%;
+        animation: boot-spin 0.7s linear infinite;
+      }
+      @keyframes boot-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @keyframes boot-out {
+        to {
+          opacity: 0;
+          visibility: hidden;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="boot-splash">
+      <div class="boot-inner">
+        <div class="boot-spinner" role="status" aria-label="Iniciando"></div>
+      </div>
+    </div>
+    <script>
+      /* Resolve o tema efetivo (dark/light) antes de qualquer pintura, para o
+         splash já nascer na cor certa — mesma chave e regra do app. */
+      (function () {
+        var bs = document.getElementById("boot-splash");
+        try {
+          var t = localStorage.getItem("super-notepad-theme") || "dark";
+          if (t === "system") {
+            t = window.matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark";
+          }
+          document.documentElement.setAttribute(
+            "data-boot-theme",
+            t === "light" ? "light" : "dark"
+          );
+        } catch (e) {
+          /* storage indisponível — cai no prefers-color-scheme do CSS */
+        }
+        /* Sem imagem para esperar: revela o spinner de imediato. */
+        if (bs) bs.classList.add("boot-ready");
+      })();
+    </script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

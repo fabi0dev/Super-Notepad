@@ -1,0 +1,23 @@
+# Python
+backend/.venv/
+**/__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Frontend
+frontend/dashboard/node_modules/
+frontend/dashboard/dist/
+desktop/node_modules/
+
+# Build artifacts do frontend (gerado por `pnpm build`)
+backend/super_notepad/web_dist/
+
+# Tauri
+desktop/src-tauri/target/
+desktop/src-tauri/gen/
+
+# Dados locais do app (nunca versionar)
+# (o banco fica em ~/.super-notepad por padrão)
+
+# SO
+.DS_Store

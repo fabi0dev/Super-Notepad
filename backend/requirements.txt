@@ -1,0 +1,7 @@
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic>=2
+python-multipart>=0.0.9
+PyYAML>=6
+Markdown>=3.5
+xhtml2pdf>=0.2.11

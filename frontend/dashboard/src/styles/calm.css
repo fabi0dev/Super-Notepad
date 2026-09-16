@@ -1,0 +1,51 @@
+/* =========================================================================
+   Minimalismo calmo — tema do app (escopo: `.calm`, aplicado no
+   `documentElement` em main.tsx, então vale pra TODAS as telas).
+
+   Ideia: menos ruído. Cards SEM borda, separados só por luminosidade (um tom
+   sólido levemente mais claro que o fundo), cantos mais macios, e o vermelho
+   recuado a um acento único (só o glifo do ícone; o poço fica neutro).
+
+   O gancho é o marcador `.app-surface` no `cardClass` (components/ui/card.tsx),
+   presente em todos os cards do app.
+   ========================================================================= */
+
+/* Superfícies: UMA cor sólida, sem borda, claramente acima do canvas — a
+   separação é só por luminosidade, então precisa de contraste suficiente com o
+   fundo (por isso `--surface-elevated`, não o `--surface`, que colava no bg). */
+.calm .app-surface {
+  background-color: var(--surface-elevated);
+  border-color: transparent;
+  border-radius: 16px;
+  /* Hover suave: a mudança de luminosidade (e o lift dos cards clicáveis, via
+     .card-lift) assentam em vez de saltar. */
+  transition: background-color var(--motion-duration-fast) ease,
+    transform var(--motion-duration-fast) cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* Realce de hover SÓ em card CLICÁVEL — um card estático que clareia ao passar
+   o mouse finge ser botão. "Clicável" = os marcadores opt-in .card-lift/
+   .card-interactive, ou um elemento nativamente interativo (<a>/<button>).
+   Passo de luminosidade discreto (10% de branco): sentido, não visto. */
+.calm .app-surface.card-lift:hover,
+.calm .app-surface.card-interactive:hover,
+.calm a.app-surface:hover,
+.calm button.app-surface:hover {
+  background-color: color-mix(in srgb, var(--surface-elevated) 90%, #fff);
+}
+@media (prefers-reduced-motion: reduce) {
+  .calm .app-surface {
+    transition: background-color var(--motion-duration-fast) ease;
+  }
+}
+/* Telas de configuração: os cards são superfícies estáticas (não clicáveis),
+   então o realce de hover só confunde — sugere que dá pra clicar. Marque o
+   container com `.no-surface-hover` para neutralizar (ex.: tela Proativo). */
+.calm .no-surface-hover .app-surface:hover {
+  background-color: var(--surface-elevated);
+}
+
+/* Poço do ícone neutro — tira a mancha vermelha; o vermelho fica só no glifo,
+   como acento único. */
+.calm .app-surface .bg-\(--primary-muted\) {
+  background-color: color-mix(in srgb, var(--foreground) 8%, transparent);
+}

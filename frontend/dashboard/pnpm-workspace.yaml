@@ -1,0 +1,6 @@
+packages:
+  - .
+
+# Super-Notepad: allow esbuild lifecycle scripts (pnpm 11+ strictDepBuilds)
+allowBuilds:
+  esbuild: true

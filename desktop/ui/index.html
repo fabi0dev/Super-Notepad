@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Super Notepad</title>
+    <style>
+      /* Tokens espelhados de frontend/dashboard/src/index.css para que a
+         inicialização não pisque numa cor diferente da do painel. */
+      :root {
+        --background: #131316;
+        --surface: #1a1a1f;
+        --border-color: #2c2c34;
+        --foreground: #dedee2;
+        --muted-foreground: #a3a3ac;
+        --primary-accent: #f04f57;
+        --destructive-fg: #f87171;
+        --destructive-bg: rgba(239, 68, 68, 0.12);
+      }
+      /* Tema claro. O tema ESCOLHIDO chega via `window.__SUPER_NOTEPAD_BOOT_THEME__`
+         (injetado pelo Tauri) e é carimbado em `data-boot-theme` no <html>,
+         prevalecendo sobre o `prefers-color-scheme` (que cobre "system"). */
+      @media (prefers-color-scheme: light) {
+        :root:not([data-boot-theme="dark"]) {
+          --background: #edf0f4;
+          --surface: #ffffff;
+          --border-color: #e5e9ef;
+          --foreground: #1a1a1a;
+          --muted-foreground: #6b7280;
+          --primary-accent: #c62a31;
+          --destructive-fg: #b91c1c;
+          --destructive-bg: rgba(220, 38, 38, 0.1);
+        }
+      }
+      :root[data-boot-theme="light"] {
+        --background: #edf0f4;
+        --surface: #ffffff;
+        --border-color: #e5e9ef;
+        --foreground: #1a1a1a;
+        --muted-foreground: #6b7280;
+        --primary-accent: #c62a31;
+        --destructive-fg: #b91c1c;
+        --destructive-bg: rgba(220, 38, 38, 0.1);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+      }
+
+      body {
+        margin: 0;
+        display: grid;
+        place-items: center;
+        padding: 2rem;
+        background: var(--background);
+        color: var(--foreground);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui,
+          sans-serif;
+        font-size: 14px;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+        user-select: none;
+        cursor: default;
+      }
+
+      main {
+        width: 100%;
+        max-width: 34rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.25rem;
+        text-align: center;
+      }
+
+      /* Só o spinner — fade suave na entrada. */
+      .boot {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.25rem;
+        opacity: 0;
+        transition: opacity 0.45s ease;
+      }
+      .boot.ready {
+        opacity: 1;
+      }
+
+      .spinner {
+        width: 20px;
+        height: 20px;
+        border: 2px solid var(--border-color);
+        border-top-color: var(--primary-accent);
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+        flex: none;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .spinner {
+          animation-duration: 2.4s;
+        }
+      }
+
+      /* Legenda do spinner durante o reparo — a compilação da interface pode
+         levar alguns minutos, e sem isto a tela parece travada. */
+      .boot-status {
+        max-width: 24rem;
+        font-size: 0.85rem;
+        color: var(--muted-foreground);
+        text-align: center;
+        white-space: pre-line;
+      }
+
+      /* Superfícies se separam por luminosidade, não por sombra. */
+      .error {
+        width: 100%;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.5rem 1.25rem 1.25rem;
+        text-align: center;
+        background: var(--surface);
+        border: 1px solid var(--border-color);
+        border-radius: 0.75rem;
+      }
+
+      /* Corvo quebrado: o mark do Super Notepad tingido de VERMELHO (a silhueta vem do
+         alfa via `mask`, então a cor original é ignorada), partido em duas
+         metades por uma rachadura. O erro tem cara de "algo trincou". */
+      .broken-crow {
+        position: relative;
+        width: 92px;
+        height: 92px;
+      }
+      /* Silhueta do corvo JÁ vermelha, embutida como data URI (sem mask e sem
+         caminho relativo — o WKWebView do Tauri não resolvia `url(mark.png)` do
+         mask; data URI sempre resolve e background-image sempre renderiza). */
+      .broken-crow .piece {
+        position: absolute;
+        inset: 0;
+        background: url("data:image/png;base64,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") center / contain no-repeat;
+      }
+      .broken-crow .piece-l {
+        clip-path: polygon(
+          0% 0%, 50% 0%, 57% 13%, 43% 27%, 58% 41%, 45% 56%, 57% 71%, 44% 85%,
+          51% 100%, 0% 100%
+        );
+        transform: translate(-3px, -2px) rotate(-6deg);
+        transform-origin: 42% 50%;
+      }
+      .broken-crow .piece-r {
+        clip-path: polygon(
+          50% 0%, 100% 0%, 100% 100%, 51% 100%, 44% 85%, 57% 71%, 45% 56%,
+          58% 41%, 43% 27%, 57% 13%
+        );
+        transform: translate(3px, 2px) rotate(6deg);
+        transform-origin: 58% 50%;
+      }
+      .broken-crow .crack {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        overflow: visible;
+      }
+      .broken-crow .crack polyline {
+        fill: none;
+        stroke: rgba(0, 0, 0, 0.38);
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      /* Pena solta caindo — dá o toque de "peça que se soltou". */
+      .broken-crow .feather {
+        position: absolute;
+        left: 62%;
+        top: 78%;
+        width: 22px;
+        height: 22px;
+        color: var(--primary-accent);
+        opacity: 0.65;
+        animation: feather-fall 3.2s ease-in-out infinite;
+        transform-origin: top center;
+      }
+      @keyframes feather-fall {
+        0% {
+          transform: translate(0, 0) rotate(8deg);
+          opacity: 0;
+        }
+        20% {
+          opacity: 0.7;
+        }
+        100% {
+          transform: translate(9px, 16px) rotate(26deg);
+          opacity: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .broken-crow .feather {
+          animation: none;
+        }
+      }
+
+      .error-heading {
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: var(--foreground);
+      }
+      .error-sub {
+        margin-top: -0.5rem;
+        font-size: 0.85rem;
+        color: var(--muted-foreground);
+      }
+
+      .error-detail {
+        margin: 0;
+        width: 100%;
+        max-height: 13rem;
+        overflow: auto;
+        padding: 0.75rem;
+        text-align: left;
+        background: var(--background);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+        line-height: 1.55;
+        color: var(--muted-foreground);
+        white-space: pre-wrap;
+        word-break: break-word;
+        user-select: text;
+        cursor: text;
+      }
+
+      .error-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.6rem;
+      }
+
+      button {
+        align-self: center;
+        padding: 0.55rem 1.1rem;
+        font: inherit;
+        font-weight: 600;
+        color: #fff;
+        background: var(--primary-accent);
+        border: 1px solid transparent;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        transition:
+          filter 0.15s ease,
+          opacity 0.15s ease;
+      }
+
+      button:hover {
+        filter: brightness(1.08);
+      }
+
+      button:disabled {
+        opacity: 0.55;
+        cursor: default;
+      }
+
+      /* Ação secundária ("Tentar de novo"): sem preenchimento vermelho, separa
+         a repetição simples da correção, que é a ação recomendada. */
+      button.secondary {
+        color: var(--foreground);
+        background: transparent;
+        border-color: var(--border-color);
+      }
+      button.secondary:hover {
+        filter: none;
+        background: var(--background);
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="boot" id="boot">
+        <div class="spinner" id="spinner" role="status" aria-label="Iniciando"></div>
+        <div class="boot-status" id="boot-status" hidden></div>
+      </div>
+
+      <section class="error" id="error" role="alert">
+        <div class="broken-crow" aria-hidden="true">
+          <span class="piece piece-l"></span>
+          <span class="piece piece-r"></span>
+          <svg class="crack" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <polyline
+              points="50,-2 57,13 43,27 58,41 45,56 57,71 44,85 51,102"
+            />
+          </svg>
+          <svg
+            class="feather"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M20 4C11 5 6 10 5 19c7 0 13-3 15-9" />
+            <path d="M5 19 14 10" />
+          </svg>
+        </div>
+        <div class="error-heading">Não consegui abrir o painel</div>
+        <div class="error-sub">Algo trincou ao iniciar. O detalhe está abaixo.</div>
+        <pre class="error-detail" id="error-detail"></pre>
+        <div class="error-actions">
+          <button type="button" id="repair">Tentar corrigir</button>
+          <button type="button" id="retry" class="secondary">Tentar de novo</button>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const spinner = document.getElementById("spinner");
+      const bootStatus = document.getElementById("boot-status");
+      const errorEl = document.getElementById("error");
+      const errorDetail = document.getElementById("error-detail");
+      const retry = document.getElementById("retry");
+      const repairBtn = document.getElementById("repair");
+
+      /* Arraste da janela. A janela é sem barra nativa (Overlay/sem moldura),
+         então o splash não arrasta de graça — e `-webkit-app-region: drag` é do
+         Chromium, ignorado pelo WKWebView. Espelha o painel: no `mousedown` da
+         tela chamamos `start_window_drag` e o WebKit assume o resto do gesto.
+         Ignora o botão e o texto de erro (que é selecionável). */
+      (function () {
+        let coreRef = null;
+        (async function () {
+          try {
+            coreRef = (await tauri()).core;
+          } catch (e) {}
+        })();
+        document.addEventListener("mousedown", function (e) {
+          if (e.button !== 0) return;
+          if (e.target.closest && e.target.closest("button, .error-detail")) return;
+          if (!coreRef) {
+            coreRef = window.__TAURI__ && window.__TAURI__.core;
+            if (!coreRef) return;
+          }
+          try {
+            coreRef.invoke("start_window_drag");
+          } catch (err) {}
+        });
+      })();
+
+      /* Tema (fallback): o Tauri normalmente já carimbou `data-boot-theme` no
+         init script. Se não (ex.: aberto sem a ponte), resolve aqui. */
+      (function () {
+        try {
+          if (!document.documentElement.getAttribute("data-boot-theme")) {
+            var t = (window.__SUPER_NOTEPAD_BOOT_THEME__ || "system").toLowerCase();
+            if (t === "system") {
+              t = window.matchMedia("(prefers-color-scheme: light)").matches
+                ? "light"
+                : "dark";
+            }
+            document.documentElement.setAttribute(
+              "data-boot-theme",
+              t === "light" ? "light" : "dark",
+            );
+          }
+        } catch (e) {}
+        /* Sem imagem para esperar: revela o spinner de imediato. */
+        var boot = document.getElementById("boot");
+        if (boot) boot.classList.add("ready");
+      })();
+
+      /** Espera pela ponte global do Tauri. O limite é de relógio, não de
+       *  número de tentativas: navegador ocioso estica `setTimeout` e um
+       *  contador de tentativas viraria minutos de espera silenciosa. */
+      async function tauri() {
+        const deadline = Date.now() + 5000;
+        while (!window.__TAURI__ && Date.now() < deadline) {
+          await new Promise((r) => setTimeout(r, 50));
+        }
+        if (!window.__TAURI__) {
+          throw new Error(
+            "A ponte do Tauri não carregou. Rode o app por `pnpm dev` ou pelo bundle gerado, não abrindo o HTML direto.",
+          );
+        }
+        return window.__TAURI__;
+      }
+
+      function showError(message) {
+        spinner.hidden = true;
+        bootStatus.hidden = true;
+        bootStatus.textContent = "";
+        errorDetail.textContent = String(message || "Erro desconhecido.");
+        errorEl.style.display = "flex";
+        retry.disabled = false;
+        repairBtn.disabled = false;
+        repairBtn.focus();
+      }
+
+      /* `status` opcional legenda o spinner — usado no reparo, que compila a
+         interface e pode demorar. */
+      function showSpinner(status) {
+        errorEl.style.display = "none";
+        spinner.hidden = false;
+        if (status) {
+          bootStatus.textContent = status;
+          bootStatus.hidden = false;
+        } else {
+          bootStatus.hidden = true;
+          bootStatus.textContent = "";
+        }
+      }
+
+      /* Vai da tela local para o painel; extrai o comportamento comum entre a
+         inicialização e o reparo. `url` vazia significa navegação recusada
+         silenciosamente pela webview — o único caso que precisa de aviso. */
+      function goToPanel(url) {
+        window.location.replace(url);
+        setTimeout(() => {
+          showError(
+            `A janela não conseguiu abrir ${url}\n\n` +
+              "O painel está no ar — só a navegação foi recusada. " +
+              "Abra essa URL no navegador enquanto isso.",
+          );
+        }, 3000);
+      }
+
+      async function start() {
+        showSpinner();
+        retry.disabled = true;
+        repairBtn.disabled = true;
+
+        try {
+          const { core } = await tauri();
+          // O token na URL vira cookie de sessão no próprio servidor do Super Notepad.
+          // O spinner fica visível até a troca (sem fade de saída — evita o
+          // "some e reaparece").
+          goToPanel(await core.invoke("start_panel"));
+        } catch (err) {
+          showError(err && err.message ? err.message : err);
+        }
+      }
+
+      /* Correção automática: pede ao backend para re-subir o painel com o PATH
+         do shell de login, curando o caso "nenhum gerenciador npm/pnpm no
+         PATH" que aparece quando o app é aberto pelo Finder. Pode compilar a
+         interface — daí a legenda de espera. */
+      async function repair() {
+        showSpinner(
+          "Corrigindo o ambiente e recompilando a interface…\n" +
+            "Isso pode levar alguns minutos na primeira vez.",
+        );
+        retry.disabled = true;
+        repairBtn.disabled = true;
+
+        try {
+          const { core } = await tauri();
+          goToPanel(await core.invoke("repair_panel"));
+        } catch (err) {
+          showError(err && err.message ? err.message : err);
+        }
+      }
+
+      retry.addEventListener("click", start);
+      repairBtn.addEventListener("click", repair);
+      start();
+    </script>
+  </body>
+</html>

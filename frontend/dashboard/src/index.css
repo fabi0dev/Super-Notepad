@@ -1,0 +1,3876 @@
+@import 'tailwindcss';
+
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts-terminal/JetBrainsMono-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts-terminal/JetBrainsMono-Bold.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts-terminal/JetBrainsMono-Italic.woff2') format('woff2');
+}
+
+:root {
+  /* Escada de superfícies do tema escuro.
+     Antes o canvas era #040405 (quase preto) com texto #EDEDEE: 17,5:1. Em
+     fundo escuro a pupila dilata e traço claro fino borra — passar de ~15:1
+     não melhora a leitura e cansa. Pior: o painel de código era #000 sobre
+     #040405, 1,02:1, invisível como painel. Sem degrau de luminosidade a
+     hierarquia dependia de sombra, que em fundo escuro quase não separa.
+     Agora cada superfície sobe um degrau e a sombra fica desnecessária. */
+  --foreground: #DEDEE2;
+  --foreground-base: #DEDEE2;
+  --foreground-alpha: 1;
+
+  --midground: #A3A3AC;
+  --midground-base: #A3A3AC;
+  --midground-alpha: 1;
+
+  --background: #131316;
+  --background-base: #131316;
+  --background-alpha: 1;
+
+  /* Sync with frontend/dashboard/src/themes/themeTokens.ts */
+  --primary-accent: #F04F57;
+  /* Preenchimento sólido != cor de texto. O verde escuro é ótimo como fundo
+     de texto branco (7.2:1) e some como texto sobre o canvas (2.6:1) — daí
+     `bg-primary` sólido usar `--primary-fill` e `text-primary` usar
+     `--primary-accent`. Ver a regra `.bg-primary` no fim do arquivo. */
+  --primary-fill: #9E2831;
+  --primary-foreground: #FFFFFF;
+  --primary-accent-glow: rgba(240, 79, 87, 0.25);
+  --secondary-accent: #F47178;
+  --selection-surface: rgba(240, 79, 87, 0.16);
+  --primary-muted: rgba(240, 79, 87, 0.10);
+
+  /* Sidebar — acento verde (themeTokens.ts) */
+  --sidebar-active-bg: #9E2831;
+  --sidebar-hover-bg: rgba(240, 79, 87, 0.12);
+  --sidebar-border-accent: rgba(255, 255, 255, 0.09);
+  --sidebar-label: #77777F;
+  --sidebar-fg-muted: #A3A3AC;
+  --sidebar-icon-fg: #ADADB2;
+  --muted-foreground: #A3A3AC;
+
+  --success: #10B981;
+  --success-bg: rgba(16, 185, 129, 0.14);
+
+  /* Cor de AÇÃO afirmativa (adicionar, entrar na conferência, salvar). O
+     vermelho é a MARCA, mas num botão de CTA lê como destrutivo ("apagar").
+     Verde-esmeralda = "positivo / ir". Fundo de texto branco: #047857 dá 5:1,
+     e por ser um verde escuro funciona igual sobre canvas claro e escuro —
+     por isso é único (não varia por tema). Destrutivo continua vermelho
+     (--destructive); marca/seleção/hoje continuam --primary-accent. */
+  --action: #047857;
+  --action-hover: #0A8A63;
+  --action-foreground: #FFFFFF;
+
+  --warm-glow: rgba(240, 79, 87, 0.05);
+  --noise-opacity-mul: 0.12;
+
+  /* Sync com SYSTEM_SANS em src/themes/presets.ts. */
+  --theme-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --theme-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --theme-font-display: var(--theme-font-sans);
+  --theme-base-size: 16px;
+  --theme-line-height: 1.6;
+  --theme-letter-spacing: -0.01em;
+
+  --radius: 0.625rem;
+  --theme-radius: 0.625rem;
+  --theme-gap: 0.75rem;
+  --theme-spacing-mul: 1;
+  --theme-density: comfortable;
+
+  --glass-bg: #1A1A1F;
+  --glass-border: #2C2C34;
+
+  --sidebar-width: 3.5rem;
+  --sidebar-expanded-width: 17.5rem;
+  /* Pinned chat task panel (ChatTodoSidePanel) — task rows are text-heavy,
+     so this needs more room than a plain nav rail. */
+  --right-panel-width: 288px;
+  --chat-max-width: 48rem;
+
+  --motion-duration-instant: 50ms;
+  --motion-duration-fast: 120ms;
+  --motion-duration-normal: 200ms;
+  --motion-duration-slow: 300ms;
+  --motion-duration-layout: 350ms;
+  --motion-duration-toast: 160ms;
+  --motion-duration-theme: 300ms;
+
+  --chat-canvas-bg: #131316;
+  --chat-sidebar-bg: var(--chat-canvas-bg);
+  /* Discreto de propósito: um sopro acima do canvas (#131316), não o degrau
+     cheio do --surface — a fala do usuário se distingue sem virar uma caixa. */
+  --chat-user-bubble-bg: #161619;
+  --chat-code-bg: #161619;
+  --chat-composer-shell-bg: #1A1A1F;
+  --chat-composer-inner-bg: #1A1A1F;
+  --chat-composer-border: color-mix(in srgb, var(--border-color) 42%, transparent);
+  --chat-footer-muted: #A3A3AC;
+  --chat-tool-card-bg: #212128;
+  --chat-table-header-bg: #212128;
+  --chat-tool-rail-icon-fg: #ADADB2;
+  --chat-section-border: rgba(255, 255, 255, 0.08);
+  /* Hierarquia do chat: prosa 15px, ações 14px, meta 13px, código 12px */
+  /* Superfície do chat tem tokens próprios: a prosa fica a meio caminho
+     entre `sm` e `base` (15px) para caber mais conversa sem apertar a
+     leitura. Os demais acompanham degraus da escala. */
+  /* Fator de escala do texto do chat (Configurações → Tamanho da fonte).
+     1 = tamanhos de referência abaixo; o boot aplica o degrau salvo. */
+  --chat-font-scale: 1;
+  --chat-text-body: calc(0.9375rem * var(--chat-font-scale));      /* 15px */
+  --chat-text-action: calc(0.875rem * var(--chat-font-scale));     /* text-sm */
+  --chat-action-code-size: calc(0.8125rem * var(--chat-font-scale)); /* 13px — mono legível, ainda um tom abaixo da prosa; escala com o tamanho do chat */
+  --chat-text-meta: calc(0.8125rem * var(--chat-font-scale));      /* 13px */
+  --chat-action-icon-size: 0.875rem;
+  --chat-action-pill-bg: var(--chat-tool-card-bg);
+  --chat-action-rail: color-mix(in srgb, var(--chat-section-border, var(--border-color)) 50%, transparent);
+  --chat-action-hover: color-mix(in srgb, var(--surface-hover) 28%, transparent);
+  --chat-action-well-bg: var(--chat-code-bg);
+  --chat-action-detail-bg: color-mix(in srgb, var(--chat-code-bg) 85%, transparent);
+  --chat-action-detail-border: color-mix(in srgb, var(--border-color) 30%, transparent);
+  /* ── Paleta de sintaxe ───────────────────────────────────────────────
+     Quatro famílias, bem apartadas em matiz — o bloco TypeScript do chat
+     precisa que propriedade, tipo e literal não caiam no mesmo cinza-pastel.
+
+       malva     estrutura (keyword)
+       gelo      tipos e nomes (string, Date, UserFoo)
+       hortelã   o que executa (função, comando, `$`)
+       ouro      literais (string; número mais quente)
+       aço       propriedades / attrs
+       cinza     comentário e pontuação — recuam
+     Contraste no well `#1C1C22`: ~8–12:1, não neon. */
+  --chat-code-fg: #E8E8EC;
+  --chat-code-muted: #7A7A86;
+  --chat-code-syntax-keyword: #D6A0FF;
+  --chat-code-syntax-string: #EFC26A;
+  --chat-code-syntax-type: #6FD0FF;
+  --chat-code-syntax-built-in: #62D8B4;
+  --chat-code-syntax-attr: #C5D0E0;
+  --chat-code-syntax-number: #FFA85C;
+  --chat-code-syntax-variable: #E8E8EC;
+  --chat-code-syntax-operator: #9A9AA6;
+  --chat-code-syntax-comment: #7A7A86;
+  --chat-code-syntax-meta: #A8B4C4;
+  --chat-code-syntax-prompt: #62D8B4;
+  --chat-code-syntax-link: #6FD0FF;
+  --chat-code-syntax-link-hover: #62D8B4;
+  --chat-code-line-remove: rgba(248, 81, 73, 0.16);
+  --chat-code-line-add: rgba(63, 185, 80, 0.16);
+  --chat-code-word-remove: rgba(248, 81, 73, 0.42);
+  --chat-code-word-add: rgba(63, 185, 80, 0.44);
+  --chat-code-gutter-remove: #f85149;
+  --chat-code-gutter-add: #3fb950;
+  --chat-code-surface: var(--chat-code-bg);
+  --chat-code-border: color-mix(in srgb, var(--border-color) 55%, transparent);
+  --chat-lint-fg: #f0a8a8;
+  --chat-lint-bg: rgba(239, 68, 68, 0.08);
+  --chat-lint-border: rgba(239, 68, 68, 0.35);
+  --chat-action-running-fg: color-mix(in srgb, var(--primary) 90%, white 8%);
+  --chat-action-error-fg: var(--destructive);
+  --chat-action-cancelled-fg: color-mix(in srgb, var(--muted-foreground) 80%, transparent);
+  --chat-action-warning-fg: #d4a84b;
+  --chat-action-summary-max-height: 4.75rem;
+  /* Blocos de ferramenta — leve, denso */
+  --chat-action-card-bg: color-mix(in srgb, var(--surface) 55%, transparent);
+  --chat-action-card-border: color-mix(in srgb, var(--border-color) 42%, transparent);
+  --chat-action-card-radius: 0.5rem;
+  --chat-action-card-shadow: none;
+  --chat-action-card-accent: color-mix(in srgb, var(--primary) 55%, transparent);
+  /* Espaço ÚNICO entre blocos irmãos da timeline (texto, ferramenta,
+     painel). Um valor só é o que produz ritmo; a variação anterior lia
+     como desalinho, não como hierarquia. */
+  --chat-block-gap: 0.75rem;
+  /* Raio da casca do composer. Nomeado em vez de apoiado na escala do
+     Tailwind: `rounded-xl` resolve para 16px neste projeto, e o valor
+     aqui é uma decisão (12px, entre os 8px dos cards e o campo), não
+     um degrau de escala qualquer. */
+  --chat-composer-radius: 0.75rem;
+
+  /* Nós do grafo de memória — cor = QUEM criou.
+     Antes eram `--success` para as suas e `--primary` para as do agente. Com
+     o acento em verde-jade os dois ficaram a 7° de matiz um do outro e a
+     distinção sumiu: o grafo inteiro virou verde.
+     Laranja e azul não competem com nenhum estado (sucesso, erro, aviso) nem
+     com a marca, e estão calibrados no MESMO contraste do jade (6,7:1 no
+     canvas escuro) para que nenhuma autoria pareça mais importante. */
+  /* Vermelho da marca como âncora, misturado com outras cores para variar e
+     distinguir: agente vermelho (marca), usuário âmbar/dourado, tags azul.
+     Arestas ficam cinza discreto; o destaque (hover) é um coral mais claro. */
+  --memory-node-agent: #F04F57;
+  --memory-node-user: #fbbf24;
+  --memory-node-tag: #60a5fa;
+  --chat-action-card-header-padding: 0.375rem 0.625rem;
+  /* Fechado não tem moldura, então o recuo horizontal só desalinharia a
+     linha em relação ao texto da resposta. */
+  --chat-action-row-padding: 0.125rem 0;
+  --chat-action-card-body-padding: 0 0.625rem 0.5rem;
+  /* Terminal / shell */
+  /* Terminal referencia a MESMA paleta — nunca valores próprios, senão as
+     duas listas voltam a divergir na primeira vez que alguém ajustar uma. */
+  --chat-terminal-fg: var(--chat-code-fg);
+  --chat-terminal-prompt: var(--chat-code-syntax-prompt);
+  --chat-terminal-built-in: var(--chat-code-syntax-built-in);
+  --chat-terminal-string: var(--chat-code-syntax-string);
+  --chat-terminal-operator: var(--chat-code-syntax-operator);
+  --chat-terminal-attr: var(--chat-code-syntax-attr);
+  --chat-terminal-meta: var(--chat-code-syntax-meta);
+  --chat-terminal-keyword: var(--chat-code-syntax-keyword);
+  --chat-terminal-link: var(--chat-code-syntax-link);
+  /* aliases legados */
+  --chat-action-hljs-fg: var(--chat-code-fg);
+  --chat-action-hljs-prompt: var(--chat-code-syntax-prompt);
+  --chat-action-hljs-keyword: var(--chat-code-syntax-keyword);
+  --chat-action-hljs-built-in: var(--chat-code-syntax-built-in);
+  --chat-action-hljs-string: var(--chat-code-syntax-string);
+  --chat-action-hljs-attr: var(--chat-code-syntax-attr);
+  --chat-action-hljs-number: var(--chat-code-syntax-number);
+  --chat-action-hljs-meta: var(--chat-code-syntax-meta);
+  --chat-action-hljs-operator: var(--chat-code-syntax-operator);
+  --chat-action-hljs-variable: var(--chat-code-syntax-variable);
+  --chat-action-hljs-link: var(--chat-code-syntax-link);
+  --chat-action-hljs-link-hover: var(--chat-code-syntax-link-hover);
+  --chat-action-hljs-comment: var(--chat-code-syntax-comment);
+  --chat-diff-bg: transparent;
+  --chat-diff-header-bg: transparent;
+  --chat-diff-border: transparent;
+  --chat-diff-fg: var(--chat-code-fg);
+  --chat-diff-file-fg: var(--chat-code-fg);
+  --chat-diff-lno: var(--chat-code-muted);
+  --chat-diff-gutter: var(--chat-code-muted);
+  --chat-diff-remove-bg: var(--chat-code-line-remove);
+  --chat-diff-remove-num-bg: transparent;
+  --chat-diff-add-bg: var(--chat-code-line-add);
+  --chat-diff-add-num-bg: transparent;
+  --chat-diff-remove-gutter: var(--chat-code-gutter-remove);
+  --chat-diff-add-gutter: var(--chat-code-gutter-add);
+  --chat-diff-word-remove-bg: var(--chat-code-word-remove);
+  --chat-diff-word-add-bg: var(--chat-code-word-add);
+  --chat-diff-hljs-keyword: var(--chat-code-syntax-keyword);
+  --chat-diff-hljs-string: var(--chat-code-syntax-string);
+  --chat-diff-hljs-built-in: var(--chat-code-syntax-built-in);
+  --chat-diff-hljs-type: var(--chat-code-syntax-type);
+  --chat-diff-hljs-entity: var(--chat-code-syntax-type);
+  --chat-diff-hljs-number: var(--chat-code-syntax-number);
+  --chat-diff-hljs-comment: var(--chat-code-syntax-comment);
+  --chat-diff-hljs-meta: var(--chat-code-syntax-meta);
+  --chat-diff-hljs-operator: var(--chat-code-syntax-operator);
+  --chat-diff-hljs-variable: var(--chat-code-syntax-variable);
+  --chat-diff-hljs-fg: var(--chat-code-fg);
+
+  /* Inline code no markdown do chat — neutro, uma cor só */
+  /* Código inline: vermelho da marca bem PÁLIDO e dessaturado (misturado com o
+     texto), casando com o tema opaco — realce discreto, nada chamativo, e com
+     contraste confortável pra leitura (não o vermelho puro). */
+  --chat-inline-code-fg: color-mix(in srgb, #f04f57 55%, var(--foreground));
+  --chat-inline-code-bg: color-mix(in srgb, #f04f57 8%, transparent);
+  --chat-inline-code-border: color-mix(in srgb, #f04f57 15%, transparent);
+
+  --badge-primary-bg: rgba(240, 79, 87, 0.10);
+  --badge-primary-fg: #F04F57;
+  --badge-success-bg: rgba(16, 185, 129, 0.14);
+  --badge-success-fg: #10B981;
+  --badge-destructive-bg: rgba(239, 68, 68, 0.12);
+  --badge-destructive-fg: #F87171;
+  --badge-warning-bg: rgba(245, 158, 11, 0.14);
+  --badge-warning-fg: #FBBF24;
+  --badge-neutral-bg: #0E0E0F;
+  --badge-neutral-fg: #9A9A9E;
+
+  --theme-secondary-surface: #0E0E0F;
+  --theme-accent-surface: #191919;
+
+  --surface-elevated: #212128;
+  --divider: #2C2C34;
+  --border-color: #2C2C34;
+  --border-strong: #2E2E31;
+  /* Linha-guia da árvore de notas — mais visível que o divisor, mas discreta;
+     adapta ao tema (clara no escuro, escura no claro). */
+  --tree-guide: color-mix(in srgb, var(--foreground) 17%, transparent);
+  --field-border: color-mix(in srgb, var(--foreground) 7%, transparent);
+  --field-border-focus: color-mix(in srgb, var(--primary-accent) 38%, transparent);
+  --field-radius: 0.5rem;
+  --field-height: 2.5rem;
+  --field-bg: var(--surface);
+  --field-textarea-min-height: 4rem;
+  --surface: #1A1A1F;
+  --surface-hover: #282830;
+  --card-bg: #0E0E0F;
+
+}
+
+html,
+body,
+button,
+input,
+select,
+textarea,
+label,
+span,
+[class*="font-sans"],
+[class*="font-display"] {
+  font-family: var(--theme-font-sans) !important;
+}
+
+/*
+ * Fundo transparente (app desktop).
+ *
+ * A janela do app nasce sempre transparente, com o desfoque do sistema
+ * aplicado atrás da webview. Quem decide se aquilo aparece é o modo: sem ele,
+ * o fundo do tema é opaco e o desfoque fica escondido — o visual de sempre.
+ *
+ * A tinta translúcida NÃO vem daqui: `applyTheme` emite `--background` com
+ * alfa quando o modo está ligado, e por ser variável ela alcança de uma vez
+ * as várias superfícies de fundo empilhadas do shell. Pintar só um elemento
+ * não bastava — o shell opaco por cima tapava o desfoque.
+ *
+ * O que sobra para o CSS é impedir o `html` e o `body` de pintarem: o fundo
+ * do elemento raiz é propagado para o canvas da página e tratado como a
+ * superfície inteira, devolvendo a opacidade que se quer evitar.
+ */
+html[data-transparent="true"],
+html[data-transparent="true"] body {
+  background-color: transparent;
+}
+
+/*
+ * O grafo 3D da Memória pinta um fundo "espacial" OPACO em tela cheia (inline
+ * no componente). Deixado assim, ele tapava sozinho a transparência da janela.
+ * Com o modo ligado, cede e vira o mesmo tint translúcido do resto do app — o
+ * papel de parede aparece, e as galáxias passam a respirar sobre ele. Precisa
+ * de `!important` porque o gradiente vem de estilo inline.
+ */
+html[data-transparent="true"] .memory-space-bg {
+  background: var(--background) !important;
+}
+
+/*
+ * A "folha" do editor de Notas usa --background (escuro) de propósito no modo
+ * opaco. Com o modo transparente ligado, ela empilharia uma 2ª camada de
+ * --background sobre a do shell — escurecendo em dobro a área de escrita e
+ * tapando o papel de parede. Aqui ela cede: transparente, herda o tint único
+ * de trás. Só vale sob transparência; no opaco a folha escura continua.
+ */
+html[data-transparent="true"] .note-sheet {
+  background: transparent !important;
+}
+
+/* Mídia das Notas — imagem/vídeo com alça de redimensionar no canto. */
+.note-media {
+  display: block;
+  margin: 0.5rem 0;
+}
+.note-media-frame {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  line-height: 0;
+}
+.note-media-el {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+.note-media-handle {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  background: var(--primary-accent);
+  border: 2px solid var(--card-bg);
+  cursor: nwse-resize;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  touch-action: none;
+}
+.note-media-frame:hover .note-media-handle,
+.note-media-selected .note-media-handle {
+  opacity: 1;
+}
+.note-media-selected .note-media-el {
+  outline: 2px solid var(--primary-accent);
+  outline-offset: 2px;
+}
+
+/* Transcrição ao vivo do Eco — cada palavra entra com um fade suave. */
+.eco-word {
+  animation: eco-word-in 0.5s ease both;
+}
+@keyframes eco-word-in {
+  from {
+    opacity: 0;
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .eco-word {
+    animation: none;
+  }
+}
+
+/* Micro-feedback: itens e selos surgem com um leve "pop" (mais vivo que só
+   aparecer). Use `style={{ animationDelay }}` para escalonar numa lista. */
+@keyframes eco-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+.eco-pop {
+  animation: eco-pop 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .eco-pop {
+    animation: none;
+  }
+}
+
+/* Botão "ir para o fim" — sobe suave ao aparecer. */
+@keyframes scroll-down-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+.scroll-down-in {
+  animation: scroll-down-in 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .scroll-down-in {
+    animation: none;
+  }
+}
+
+/* Card de Tempo — cena viva (sol/lua/nuvens/chuva/neve/tempestade). Tudo bem
+   translúcido para TINGIR a superfície do card e combinar com o tema, nunca
+   pintar por cima. */
+@keyframes wx-sun-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.12); opacity: 1; }
+}
+.wx-sun { animation: wx-sun-pulse 6s ease-in-out infinite; }
+.wx-sun-core { animation: wx-sun-pulse 6s ease-in-out infinite; }
+@keyframes wx-twinkle {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.9; }
+}
+.wx-star { animation: wx-twinkle 3s ease-in-out infinite; }
+@keyframes wx-cloud-drift {
+  from { transform: translateX(6px); }
+  to { transform: translateX(-10px); }
+}
+.wx-cloud {
+  animation: wx-cloud-drift 18s ease-in-out infinite alternate;
+}
+@keyframes wx-rain-fall {
+  0% { transform: translateY(-20%); opacity: 0; }
+  20% { opacity: 0.6; }
+  100% { transform: translateY(340%); opacity: 0; }
+}
+.wx-rain { animation: wx-rain-fall 0.9s linear infinite; }
+@keyframes wx-snow-fall {
+  0% { transform: translateY(-20%) translateX(0); opacity: 0; }
+  20% { opacity: 0.8; }
+  100% { transform: translateY(360%) translateX(6px); opacity: 0; }
+}
+.wx-snow { animation: wx-snow-fall 3s linear infinite; }
+@keyframes wx-flash {
+  0%, 92%, 100% { background-color: rgba(148, 163, 184, 0); }
+  94%, 97% { background-color: rgba(148, 163, 184, 0.1); }
+}
+.wx-flash { animation: wx-flash 5s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .wx-sun, .wx-sun-core, .wx-star, .wx-cloud, .wx-rain, .wx-snow, .wx-flash {
+    animation: none;
+  }
+}
+
+/* Rótulo "Copiado!" — desliza da esquerda ao confirmar a cópia. */
+@keyframes copy-feedback-in {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.copy-feedback-in {
+  animation: copy-feedback-in 0.18s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .copy-feedback-in {
+    animation: none;
+  }
+}
+
+/* Paleta ⌘K — cascata sutil de cima pra baixo. Roda só no mount de cada linha
+   (as chaves são estáveis, então não repete ao digitar); linhas novas de busca
+   entram com o mesmo gesto. O delay por índice vem inline no style. */
+@keyframes palette-cascade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.palette-cascade {
+  animation: palette-cascade-in 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .palette-cascade {
+    animation: none;
+  }
+}
+
+/*
+ * O `html` não pinta nada aqui. A tinta translúcida vem de `--background`,
+ * que o `applyTheme` emite com alfa quando o modo está ligado — e por ser
+ * variável ela alcança de uma vez as várias superfícies empilhadas do shell.
+ * O fundo do elemento raiz é propagado para o canvas da página e o navegador
+ * o trata como a superfície inteira; deixá-lo pintar aqui devolveria a
+ * opacidade que se quer justamente evitar.
+ */
+
+html {
+  font-size: var(--theme-base-size);
+  line-height: var(--theme-line-height);
+  letter-spacing: var(--theme-letter-spacing);
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+  background-color: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition:
+    background-color var(--motion-duration-theme, 300ms) ease,
+    color var(--motion-duration-theme, 300ms) ease;
+}
+
+/*
+ * Global border reset (unlayered): Tailwind `border-*` on layout/shell stays
+ * invisible — design uses surface elevation. Form controls opt in via
+ * `.sn-field` at the end of this file.
+ */
+*,
+*::before,
+*::after {
+  border-color: transparent;
+  border-width: 0;
+}
+
+input,
+textarea {
+  border-color: transparent;
+  border-width: 0;
+}
+
+/* Opt-in visible borders — must follow the global reset above. */
+.border.border-solid {
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--border-color);
+}
+
+/* Linha-guia da árvore de Notas. O reset global zera `border-*`, e o opt-in
+   acima só cobre `.border` (borda completa) — NÃO `.border-l`. Por isso a linha
+   vertical de hierarquia nunca aparecia (largura 0). Classe própria com a borda
+   esquerda explícita, na cor --tree-guide (visível mas discreta). */
+.notes-tree-guide {
+  border-left: 1px solid var(--tree-guide);
+}
+
+/* Checkbox de tarefa (Home e app de Tarefas). O reset global zera `border-*`,
+   então a borda do quadradinho precisa ser explícita aqui — senão o checkbox
+   fica invisível (só um vão vazio). Estados: vazio, hover e marcado
+   (`.is-done`, preenchido). */
+.sn-checkbox {
+  border: 1.5px solid var(--border-strong);
+  transition: border-color var(--motion-duration-fast) ease,
+    background-color var(--motion-duration-fast) ease;
+}
+.sn-checkbox:hover {
+  border-color: var(--primary-accent);
+}
+.sn-checkbox.is-done {
+  border-color: var(--primary-accent);
+  background-color: var(--primary-fill, var(--primary-accent));
+}
+@media (prefers-reduced-motion: reduce) {
+  .sn-checkbox {
+    transition: none;
+  }
+}
+
+/* Divisória suave entre itens da lista de e-mail (o reset acima zera border-*). */
+.sn-mail-row {
+  border-bottom: 1px solid color-mix(in srgb, var(--border-color) 55%, transparent);
+}
+.sn-mail-row:last-child {
+  border-bottom: 0;
+}
+
+/* Grade do calendário — o reset global zera border-*, então as linhas da
+ * agenda (divisórias entre dias/horas) precisam ser explícitas. */
+.cal-box {
+  border: 1px solid var(--border-color);
+}
+.cal-col {
+  border-left: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
+}
+.cal-row {
+  border-bottom: 1px solid color-mix(in srgb, var(--border-color) 45%, transparent);
+}
+.cal-hdr {
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Channel cards — explicit border (reset above nullifies Tailwind border-*). */
+[data-channel-card] {
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--border-color);
+}
+
+[data-channel-card]:hover:not(:disabled) {
+  border-color: var(--border-strong);
+}
+
+[data-channel-card][data-configured] {
+  border-color: var(--success-border);
+}
+
+[data-channel-card][data-configured]:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--success) 35%, transparent);
+}
+
+body {
+  font-family: var(--theme-font-sans);
+  min-height: 0;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+/* Interactive affordance: clickable UI should show pointer cursor. */
+button:not(:disabled),
+a[href],
+summary,
+label[for],
+[role="button"]:not([aria-disabled="true"]),
+input[type="button"]:not(:disabled),
+input[type="submit"]:not(:disabled),
+input[type="reset"]:not(:disabled) {
+  cursor: pointer;
+}
+
+code,
+kbd,
+pre,
+/* `!important` porque a regra de fonte base marca `span` como !important, e
+   um seletor de elemento com !important vence uma classe sem ele. Sem isto
+   TODO `<span class="font-mono">` do app (14 hoje, incluindo a wordmark do
+   logo) renderizava na sans, silenciosamente. Com os dois !important, a
+   especificidade decide e a classe ganha. */
+samp,
+.font-mono,
+.font-mono-ui {
+  font-family: var(--theme-font-mono) !important;
+}
+
+@theme inline {
+  --spacing: calc(0.25rem * var(--theme-spacing-mul, 1));
+  --color-foreground: var(--foreground, #EDEDEE);
+  --color-background: var(--background, #040405);
+  --color-card: var(--card-bg, #0E0E0F);
+  --color-card-foreground: var(--foreground, #EDEDEE);
+  --color-primary: var(--primary-accent, #F04F57);
+  --color-primary-foreground: var(--primary-foreground, #FFFFFF);
+  --color-secondary: var(--theme-secondary-surface, #0E0E0F);
+  --color-secondary-foreground: var(--primary-accent, #F04F57);
+  --color-muted: var(--surface, #0E0E0F);
+  --color-muted-foreground: var(--muted-foreground, #9A9A9E);
+  --color-accent: var(--theme-accent-surface, #191919);
+  --color-accent-foreground: var(--foreground, #EDEDEE);
+  --color-destructive: #EF4444;
+  --color-destructive-foreground: #FFFFFF;
+  --color-success: var(--success, #10B981);
+  --color-badge-primary-bg: var(--badge-primary-bg);
+  --color-badge-primary-fg: var(--badge-primary-fg);
+  --color-badge-success-bg: var(--badge-success-bg);
+  --color-badge-success-fg: var(--badge-success-fg);
+  --color-badge-destructive-bg: var(--badge-destructive-bg);
+  --color-badge-destructive-fg: var(--badge-destructive-fg);
+  --color-badge-warning-bg: var(--badge-warning-bg);
+  --color-badge-warning-fg: var(--badge-warning-fg);
+  --color-badge-neutral-bg: var(--badge-neutral-bg);
+  --color-badge-neutral-fg: var(--badge-neutral-fg);
+  --color-warning: #F59E0B;
+  --color-border: var(--border-color, #1F1F21);
+  --color-input: var(--surface, #0E0E0F);
+  --color-ring: var(--primary-accent, #F04F57);
+  --color-popover: var(--popover-bg, var(--card-bg, #0E0E0F));
+  --color-popover-foreground: var(--foreground, #EDEDEE);
+
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  --font-sans: var(--theme-font-sans);
+  --font-mono: var(--theme-font-mono);
+  --font-display: var(--theme-font-display);
+
+  /* ── Escala tipográfica ───────────────────────────────────────────────
+     A escala do Tailwind (12/14/16) não era a do produto: o app usava
+     `text-[11px]` 47 vezes, `text-[10px]` 25, `text-[13px]` 9 e
+     `text-[0.65rem]` 12 — este último sendo 10.4px, ou seja, a MESMA coisa
+     que 10px com outro valor. Ou seja, a densidade real já era 10/11/13/15;
+     os tamanhos arbitrários existiam para escapar da escala padrão.
+
+     Redefinir os degraus para os valores que a UI de fato usa é o que
+     permite todo tamanho voltar a ser um nome (`text-xs`) em vez de um
+     número solto — e o que faz dois elementos irmãos terem, de fato, o
+     mesmo tamanho.
+
+     Os degraus são os do Tailwind (12/14/16/18/20/24/30) mais um `2xs` de
+     11px para pastilhas — deliberadamente NÃO uma escala mais densa: a
+     primeira tentativa usou 10/11/13/15 e ficou pequena demais para leitura
+     confortável. Assim os ~350 usos de `text-xs`/`text-sm` que já existiam
+     mantêm o tamanho de sempre, e os tamanhos arbitrários arredondam para
+     CIMA até o degrau mais próximo — nada encolhe.
+
+     Altura de linha embutida em cada degrau: os pequenos são rótulos e
+     pastilhas (linha justa), os grandes são leitura (linha folgada). */
+  --text-2xs: 0.6875rem;     /* 11px — pastilhas, contadores, meta densa */
+  --text-2xs--line-height: 0.9375rem;
+  --text-xs: 0.75rem;        /* 12px — rótulos de seção, legendas */
+  --text-xs--line-height: 1rem;
+  --text-sm: 0.875rem;       /* 14px — padrão da UI: linhas, botões, campos */
+  --text-sm--line-height: 1.25rem;
+  --text-base: 1rem;         /* 16px — prosa */
+  --text-base--line-height: 1.5rem;
+  --text-lg: 1.125rem;       /* 18px */
+  --text-lg--line-height: 1.625rem;
+  --text-xl: 1.25rem;        /* 20px — títulos de página */
+  --text-xl--line-height: 1.75rem;
+  --text-2xl: 1.5rem;        /* 24px */
+  --text-2xl--line-height: 1.875rem;
+  --text-3xl: 1.875rem;      /* 30px — saudação, estados vazios */
+  --text-3xl--line-height: 2.25rem;
+
+  --duration-instant: var(--motion-duration-instant);
+  --duration-fast: var(--motion-duration-fast);
+  --duration-normal: var(--motion-duration-normal);
+  --duration-slow: var(--motion-duration-slow);
+  --duration-layout: var(--motion-duration-layout);
+}
+
+#root {
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+small { font-size: 0.9375rem; }
+code { font-size: 0.9375rem; }
+
+@keyframes eco-record-ring {
+  0%, 100% { transform: scale(1); opacity: 0.45; }
+  50% { transform: scale(1.12); opacity: 0.12; }
+}
+.eco-record-ring {
+  animation: eco-record-ring 1.6s ease-in-out infinite;
+}
+@keyframes eco-record-btn-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.82; }
+}
+.eco-record-btn-active {
+  animation: eco-record-btn-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes toast-out {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(10px); }
+}
+
+@keyframes dialog-in {
+  from { opacity: 0; transform: translateY(2px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+}
+
+/* Núcleo: pulso suave do core e dos nós "agora". */
+@keyframes nucleo-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary-accent) 40%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 8px color-mix(in srgb, var(--primary-accent) 0%, transparent);
+  }
+}
+.nucleo-pulse {
+  animation: nucleo-pulse 2.4s ease-out infinite;
+}
+@keyframes nucleo-live {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.nucleo-live-dot {
+  animation: nucleo-live 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nucleo-pulse, .nucleo-live-dot { animation: none; }
+}
+
+@keyframes content-enter {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Menus flutuantes (contexto, popovers) surgindo do ponto de origem. */
+@keyframes pop-in {
+  from { opacity: 0; transform: scale(0.96) translateY(-3px); }
+  to { opacity: 1; transform: none; }
+}
+.sn-pop-in {
+  animation: pop-in 0.12s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top left;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sn-pop-in { animation: none; }
+}
+
+/* Painel de chat da nota deslizando da direita. */
+@keyframes note-panel-in {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+.chat-note-panel {
+  /* O reset global zera `border-*` e o único opt-in é `.border.border-solid`
+     (borda completa) — `border-l` do Tailwind fica em 0px. Por isso a divisão
+     editor↔chat sumia. Borda esquerda EXPLÍCITA, como as outras divisórias. */
+  border-left: 1px solid var(--border-color);
+  animation: note-panel-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-note-panel { animation: none; }
+}
+
+/* Notas: aba abre com fade + leve subida (roda 1x no mount, aba é keyed). */
+@keyframes note-tab-enter {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.note-tab-enter {
+  animation: note-tab-enter 0.16s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+/* Notas: conteúdo da pasta ao expandir — fade + slide sutil. */
+@keyframes note-tree-reveal {
+  from { opacity: 0; transform: translateY(-2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.note-tree-reveal {
+  animation: note-tree-reveal 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .note-tab-enter,
+  .note-tree-reveal { animation: none; }
+}
+
+/* Notas: o corvo (botão de conversar) "pousa" ao abrir uma nota — sobe,
+   aparece e assenta com um leve overshoot de escala. Re-dispara a cada nota
+   porque o botão é keyed pelo id da nota. */
+@keyframes note-crow-in {
+  0% { opacity: 0; transform: translateY(10px) scale(0.8); }
+  60% { opacity: 1; transform: translateY(-2px) scale(1.06); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.note-crow-in {
+  animation: note-crow-in 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .note-crow-in { animation: none; }
+}
+
+@keyframes sidebar-expand {
+  from { width: 56px; }
+  to { width: 200px; }
+}
+
+/* Realce da busca na conversa (ChatFindBar), via CSS Custom Highlight API —
+   sem mutar o DOM. Amarelo para todas as ocorrências; laranja para a atual. */
+::highlight(sn-find) {
+  background-color: color-mix(in srgb, #facc15 38%, transparent);
+  color: inherit;
+}
+::highlight(sn-find-active) {
+  background-color: color-mix(in srgb, #f97316 60%, transparent);
+  color: inherit;
+}
+
+/* Entrada do shell no fim do boot. O splash (corvo, #131316) escurece por cima
+   e some; o shell aparece por baixo com este fade-in — juntos formam um
+   crossfade percebido, em vez de a interface "pipocar" atrás do corvo sumindo.
+   Fundo e splash são a mesma cor escura, então sem o fade-in do conteúdo a
+   transição fica invisível. */
+@keyframes app-shell-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.app-shell-in {
+  animation: app-shell-in 0.5s ease both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell-in { animation: none; }
+}
+
+/* ── Barra de título integrada (app desktop / macOS Overlay) ──────────────
+   No app a janela nasce sem a barra cinza: os controles nativos (fechar,
+   minimizar, zoom) flutuam sobre o conteúdo. Reservamos uma faixa no topo
+   para que nada fique sob eles e para dar onde arrastar a janela. Como a
+   shell é um flex-column com overflow-hidden, o padding-top só encolhe a
+   área útil — não estoura a altura `h-dvh`. A classe `.sn-desktop` só
+   existe no app (Tauri); no dashboard web esta faixa não aparece. */
+.sn-desktop {
+  --titlebar-h: 32px;
+}
+.sn-desktop .app-shell-in {
+  padding-top: var(--titlebar-h);
+}
+/* A faixa reservada é a área de arraste da janela. O WKWebView ignora
+   `-webkit-app-region`, então o arraste é feito por JS (mousedown →
+   comando Rust `start_window_drag`); ver App.tsx. No macOS os controles
+   nativos ficam por cima e continuam clicáveis; no Windows/Linux os nossos
+   controles moram à direita desta faixa. */
+.sn-desktop .sn-titlebar-drag {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--titlebar-h);
+  z-index: 30;
+  /* Mesma superfície do conteúdo: no dark o canvas escuro já combina, então a
+     faixa herda o fundo por baixo; no claro preenche com a superfície branca
+     (regra abaixo) para o cinza do canvas não vazar sob os controles. */
+}
+/* Tema claro: no app tudo é branco menos o canvas do `<html>` (#EDF0F4). A
+   faixa de arraste é transparente, então esse cinza vazava sob os controles da
+   janela (fechar/minimizar), destoando do branco. Preenche com a superfície
+   branca — sidebar e conteúdo já são brancos, então não há emenda. */
+.sn-desktop[data-theme="light"] .sn-titlebar-drag {
+  background: var(--card-bg);
+}
+
+/* Slot de controles à esquerda da faixa. Fora do app desktop fica escondido
+   (as páginas caem no fallback do próprio cabeçalho). No macOS começa depois
+   das bolinhas; no Windows/Linux (bolinhas próprias à direita) cola à esquerda. */
+.sn-titlebar-slot-left {
+  display: none;
+}
+.sn-desktop .sn-titlebar-slot-left {
+  position: absolute;
+  top: 0;
+  left: 78px;
+  height: var(--titlebar-h);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  -webkit-app-region: no-drag;
+}
+.sn-desktop.sn-os-win .sn-titlebar-slot-left,
+.sn-desktop.sn-os-linux .sn-titlebar-slot-left {
+  left: 0.5rem;
+}
+
+/* Título da janela centralizado na faixa (padrão macOS). Fora do app desktop
+   fica escondido — o cabeçalho da página é quem mostra o título ali. */
+.sn-titlebar-title {
+  display: none;
+}
+.sn-desktop .sn-titlebar-title {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Controles próprios da janela (Windows/Linux, sem moldura nativa). Ficam à
+   direita, no padrão do sistema: minimizar, maximizar e fechar. Sem sombra —
+   a distinção é por luminosidade no hover. */
+.sn-desktop .sn-win-controls {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: var(--titlebar-h);
+  display: flex;
+}
+.sn-desktop .sn-win-controls button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 100%;
+  color: var(--muted-foreground);
+  background: transparent;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+.sn-desktop .sn-win-controls button:hover {
+  background: var(--surface-hover);
+  color: var(--foreground);
+}
+.sn-desktop .sn-win-controls button.is-close:hover {
+  background: #e81123;
+  color: #ffffff;
+}
+
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* Scrollbar — padrão global + utilitário .ui-scrollbar para áreas aninhadas */
+:root {
+  /* Declara o esquema para a UA, não só para o nosso CSS: vale para as
+     barras nativas (onde as regras `-webkit-` não alcançam, como no
+     Firefox), controles de formulário e área de overscroll. Sem isto, o
+     padrão da UA é CLARO. */
+  color-scheme: dark;
+
+  --ui-scrollbar-size: 4px;
+  --ui-scrollbar-thumb: #2C2C34;
+  --ui-scrollbar-thumb-hover: #3A3A44;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --ui-scrollbar-thumb: #e5e7eb;
+  --ui-scrollbar-thumb-hover: #cbd5e1;
+}
+
+:root[data-theme="light"] {
+  /* Mesmos papéis, tons escuros: sobre painel claro os originais somem. */
+  /* Alvo 3:1 — nó de grafo é objeto gráfico, não texto. Agente no vermelho da
+     marca (tom claro), usuário âmbar, tags azul. */
+  --memory-node-agent: #C62A31;
+  --memory-node-user: #fbbf24;
+  --memory-node-tag: #60a5fa;
+}
+
+::-webkit-scrollbar {
+  width: var(--ui-scrollbar-size);
+  height: var(--ui-scrollbar-size);
+}
+
+
+.ui-scrollbar::-webkit-scrollbar {
+  width: var(--ui-scrollbar-size);
+  height: var(--ui-scrollbar-size);
+}
+
+.ui-scrollbar::-webkit-scrollbar-track,
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ui-scrollbar::-webkit-scrollbar-thumb,
+::-webkit-scrollbar-thumb {
+  background: var(--ui-scrollbar-thumb);
+  border-radius: 99px;
+}
+
+.ui-scrollbar::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ui-scrollbar-thumb-hover);
+}
+
+.ui-scrollbar::-webkit-scrollbar-corner,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Lista de Notas: barra mais grossa e com mais contraste. A global (4px, tom
+   quase igual ao fundo) some justamente quando é a rolagem HORIZONTAL que o
+   usuário precisa pegar. Polegar recuado (borda transparente + padding-box)
+   para parecer fino por dentro de uma pista mais larga e clicável. */
+.notes-tree-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--foreground) 26%, transparent)
+    transparent;
+}
+.notes-tree-scroll::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+.notes-tree-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--foreground) 26%, transparent);
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.notes-tree-scroll::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--foreground) 42%, transparent);
+  background-clip: padding-box;
+}
+
+/* Rolagem da conversa do chat: pista larga (10px) e clicável, com o polegar
+   recuado por borda transparente + padding-box — parece fino (calmo), mas dá
+   pra AGARRAR com o mouse (a global de 4px era estreita demais). Escurece no
+   hover. */
+.chat-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--foreground) 22%, transparent)
+    transparent;
+}
+.chat-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.chat-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.chat-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--foreground) 22%, transparent);
+  border-radius: 99px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+.chat-scroll::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--foreground) 38%, transparent);
+  background-clip: padding-box;
+}
+.chat-scroll::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Turnos concluídos fora da viewport: o navegador pula layout/paint (mas o nó
+   fica no DOM, então find-in-page, âncoras do TOC e o scroll continuam
+   íntegros). `contain-intrinsic-size: auto` lembra a última altura medida, então
+   não há salto ao rolar de volta. Ganho grande em conversas longas sem os
+   riscos da virtualização. Só em turnos NÃO-vivos (o vivo não leva a classe). */
+.chat-turn-idle {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 240px;
+}
+
+/* Message animations */
+@keyframes message-in {
+  from { opacity: 0; transform: translateY(4px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes chat-stream-caret-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.chat-stream-caret {
+  animation: chat-stream-caret-blink 1s steps(1, end) infinite;
+  border-radius: 1px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-stream-caret {
+    animation: none;
+    opacity: 0.7;
+  }
+}
+
+.motion-fade-in {
+  animation: fade-in var(--motion-duration-fast) ease-out;
+}
+
+.motion-dialog-in {
+  animation: dialog-in var(--motion-duration-normal) ease-out;
+}
+
+.motion-message-in {
+  animation: message-in var(--motion-duration-normal) ease-out;
+}
+
+.motion-slide-up {
+  animation: slide-up var(--motion-duration-normal) cubic-bezier(0.16, 1, 0.3, 1)
+    both;
+}
+
+/* Entrada em cascata de seções/cards. O atraso vem inline
+   (style={{ animationDelay }}) — escalona sem uma classe por índice. */
+.motion-enter {
+  animation: content-enter var(--motion-duration-normal)
+    cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .motion-slide-up,
+  .motion-enter {
+    animation: none;
+  }
+}
+
+/* Card/linha INTERATIVO das telas de app: lift no hover e press tátil.
+   Sem sombra (a UI separa superfícies por luminosidade, não por sombra) —
+   o realce vem de um translateY + leve escala. Respeita reduced-motion. */
+.card-interactive {
+  transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 140ms ease, border-color 140ms ease;
+  will-change: transform;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .card-interactive:hover {
+    transform: translateY(-4px) scale(1.012);
+  }
+  .card-interactive:active {
+    transform: translateY(-1px) scale(0.99);
+  }
+}
+
+/* Entrada em cascata de itens de lista. O índice entra por
+   style={{ ['--i']: i }} e o atraso sai daqui — escalona sem classe por item.
+   Mais visível: sobe mais (14px), dura mais (380ms) e escalona 55ms/item. */
+@keyframes list-item-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.list-stagger-item {
+  animation: list-item-in 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(min(var(--i, 0) * 55ms, 550ms));
+}
+@media (prefers-reduced-motion: reduce) {
+  .card-interactive,
+  .list-stagger-item {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* Entrada em cascata dos cards do bento da Home. O atraso vem do nth-child de
+   cada FILHO do grid — CSS puro (não framer) de propósito: sobrevive a widget
+   que se auto-esconde (retorna null, sem nó no grid) sem furar o mosaico nem o
+   escalonamento, exatamente como o span por nth-child. A classe é removida ~1.2s
+   após o mount (o `to` é igual ao estado natural, então sai sem salto) para não
+   re-animar quando dados chegam depois ou ao alternar o modo de edição. */
+@keyframes home-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.home-bento-enter > * {
+  animation: home-card-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.home-bento-enter > *:nth-child(1) {
+  animation-delay: 120ms;
+}
+.home-bento-enter > *:nth-child(2) {
+  animation-delay: 180ms;
+}
+.home-bento-enter > *:nth-child(3) {
+  animation-delay: 240ms;
+}
+.home-bento-enter > *:nth-child(4) {
+  animation-delay: 300ms;
+}
+.home-bento-enter > *:nth-child(5) {
+  animation-delay: 360ms;
+}
+.home-bento-enter > *:nth-child(6) {
+  animation-delay: 420ms;
+}
+.home-bento-enter > *:nth-child(n + 7) {
+  animation-delay: 480ms;
+}
+
+/* Lift tátil dos cards CLICÁVEIS (sem sombra — só um leve subir + press).
+   Opt-in: aplicada só onde o card leva a alguma ação. Compõe com o realce de
+   luminosidade do .calm .app-surface. */
+.card-lift {
+  transition: transform var(--motion-duration-fast)
+    cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .card-lift:hover {
+    transform: translateY(-2px);
+  }
+  .card-lift:active {
+    transform: translateY(0) scale(0.995);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-bento-enter > * {
+    animation: none;
+  }
+  .card-lift {
+    transition: none;
+  }
+}
+
+/* Chat action items — entrada suave (só transform; opacity fica livre p/ status). */
+@keyframes action-row-in {
+  from {
+    transform: translateY(4px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.chat-action-row-enter {
+  animation: action-row-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes action-detail-in {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chat-action-detail-enter {
+  animation: action-detail-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.chat-action-expand {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.chat-action-expand.is-open {
+  grid-template-rows: 1fr;
+}
+
+.chat-action-expand > .chat-action-expand-inner {
+  overflow: hidden;
+  /* Conteúdo some junto com o colapso das linhas — sem "flash" do texto sendo
+     recortado enquanto a altura anima. */
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.chat-action-expand.is-open > .chat-action-expand-inner {
+  opacity: 1;
+  transition: opacity 240ms ease 60ms;
+}
+
+.chat-action-callout {
+  border-left: 2px solid var(--border-color);
+  padding: 0.125rem 0 0.125rem 0.75rem;
+}
+
+.chat-action-card {
+  --chat-code-surface: color-mix(in srgb, var(--chat-code-bg) 88%, transparent);
+  border: 1px solid var(--chat-action-card-border);
+  border-radius: var(--chat-action-card-radius);
+  background-color: var(--chat-action-card-bg);
+  box-shadow: var(--chat-action-card-shadow);
+  overflow: hidden;
+}
+
+/* Fechado é LINHA, não card.
+   Um turno costuma ter várias chamadas de ferramenta, e cada uma virava uma
+   caixa com borda e preenchimento. Empilhadas, as molduras pesavam mais que o
+   texto da resposta — que é o conteúdo. A moldura passa a existir só quando há
+   corpo aberto para ela delimitar; fechado, sobra o ícone e o rótulo.
+   As cores não mudam: o que sai é a borda e o preenchimento. */
+.chat-action-card:not([data-expanded]) {
+  border-color: transparent;
+  background-color: transparent;
+}
+
+.chat-action-card:not([data-expanded]) .chat-action-card-header {
+  padding: var(--chat-action-row-padding);
+}
+
+.chat-action-card {
+  /* Sem transition em opacity — remount/foco de aba fazia cards de erro “tremorem”. */
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease;
+}
+
+.chat-action-card[data-visual-status="running"] {
+  border-color: color-mix(in srgb, var(--chat-action-card-border) 88%, transparent);
+}
+
+/* Falha: borda padrão + card atenuado (não destacar com borda de erro). */
+.chat-action-card[data-visual-status="error"] {
+  opacity: 0.36;
+}
+
+.chat-action-card[data-visual-status="warning"] {
+  border-color: color-mix(in srgb, var(--chat-action-warning-fg) 28%, var(--chat-action-card-border));
+}
+
+.chat-action-card-header {
+  padding: var(--chat-action-card-header-padding);
+}
+
+.chat-action-card-body {
+  background-color: transparent;
+  padding: var(--chat-action-card-body-padding);
+  /* Prosa/UI em sans — mono só em .chat-action-code-wrap / .chat-action-diff */
+  font-family: var(--theme-font-sans);
+  font-size: var(--chat-text-meta, 0.8125rem);
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--foreground) 78%, transparent);
+}
+
+.chat-action-card .chat-action-icon-square {
+  width: 1rem;
+  height: 1rem;
+  border: none;
+  border-radius: 9999px;
+  background-color: transparent;
+  color: var(--chat-tool-rail-icon-fg);
+}
+
+.chat-action-card-panel {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.chat-action-card-panel--diff {
+  gap: 0;
+}
+
+.chat-action-card-body:has(.chat-action-card-panel--diff) {
+  padding: 0 0.5rem 0.5rem;
+  background: transparent;
+}
+
+.chat-action-card-body .chat-action-callout {
+  border-left: none;
+  padding-left: 0;
+}
+
+.chat-action-output {
+  margin: 0;
+  max-width: 100%;
+}
+
+.chat-action-output-summary {
+  position: relative;
+  max-height: var(--chat-action-summary-max-height);
+  overflow: hidden;
+}
+
+/* Prévia NÃO rola.
+   Uma área de rolagem dentro de um card dentro de uma página que também rola
+   é armadilha em dois sentidos: o gesto pega o container errado, e a barra —
+   que cada motor desenha do seu jeito, e que no WKWebView sai com a
+   aparência do sistema — vira o elemento mais chamativo do card, competindo
+   com o conteúdo que ela deveria apenas delimitar.
+   Aqui a prévia recorta na altura já definida e quebra as linhas longas. O
+   conteúdo inteiro continua a um clique, no card expandido. */
+.chat-action-code-wrap.chat-action-output-summary[data-variant="terminal"],
+.chat-action-code-wrap.chat-action-output-summary[data-variant="command"] {
+  overflow: hidden;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* «Tem mais coisa aqui».
+   Enquanto a prévia rolava, a barra dizia isso sozinha. Sem rolagem, o
+   recorte fica mudo — não há diferença visível entre um comando que terminou
+   e um que foi cortado no meio. Esta sombra interna na borda de baixo é o
+   substituto, e só aparece quando `data-clipped` diz que sobrou conteúdo.
+   A cor sai do próprio fundo, não é um tom novo: é o card se apagando na
+   última linha, não uma faixa por cima dela. */
+.chat-action-code-wrap[data-clipped] {
+  box-shadow: inset 0 -14px 12px -12px color-mix(in srgb, var(--background) 78%, transparent);
+}
+
+/* Sem `scrollbar-width`/`scrollbar-color` de propósito.
+   Declarar as propriedades PADRÃO faz o WebKit passar para o modelo padrão
+   de scrollbar e ignorar as regras `::-webkit-scrollbar-*` logo abaixo — que
+   são as nossas, finas e escuras. Onde o motor não implementa a cor padrão,
+   o resultado é a barra do sistema, clara, sem relação com o tema: era o que
+   aparecia dentro dos cards no app desktop.
+   Abrindo mão delas, WebKit e Chromium usam as regras `-webkit-`; o Firefox
+   cai na barra nativa, que já segue o `color-scheme: dark` declarado na
+   raiz. */
+
+.chat-action-card :is(
+  .chat-action-code-wrap,
+  .chat-action-diff,
+  .chat-diff-code-wrap,
+  .chat-action-output-friendly.chat-action-output-summary
+)::-webkit-scrollbar,
+.ui-scrollbar::-webkit-scrollbar {
+  width: var(--ui-scrollbar-size);
+  height: var(--ui-scrollbar-size);
+}
+
+.chat-action-card :is(
+  .chat-action-code-wrap,
+  .chat-action-diff,
+  .chat-diff-code-wrap,
+  .chat-action-output-friendly.chat-action-output-summary
+)::-webkit-scrollbar-track,
+.ui-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-action-card :is(
+  .chat-action-code-wrap,
+  .chat-action-diff,
+  .chat-diff-code-wrap,
+  .chat-action-output-friendly.chat-action-output-summary
+)::-webkit-scrollbar-thumb,
+.ui-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--ui-scrollbar-thumb);
+  border-radius: 99px;
+}
+
+.chat-action-card :is(
+  .chat-action-code-wrap,
+  .chat-action-diff,
+  .chat-diff-code-wrap,
+  .chat-action-output-friendly.chat-action-output-summary
+)::-webkit-scrollbar-thumb:hover,
+.ui-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--ui-scrollbar-thumb-hover);
+}
+
+.chat-action-card :is(
+  .chat-action-code-wrap,
+  .chat-action-diff,
+  .chat-diff-code-wrap,
+  .chat-action-output-friendly.chat-action-output-summary
+)::-webkit-scrollbar-corner,
+.ui-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.chat-action-diff {
+  overflow-x: auto;
+  overflow-y: visible;
+  overscroll-behavior-x: contain;
+  border: 1px solid var(--chat-code-border);
+  border-radius: 0.375rem;
+  background: var(--chat-code-surface);
+  font-family: var(--theme-font-mono);
+  font-size: var(--chat-action-code-size, 0.75rem);
+  line-height: 1.55;
+  color: var(--chat-code-fg);
+}
+
+/* Painel "Alterações": o diff fica NO fundo do chat, sem well nem moldura —
+   o painel já é o canvas do chat, então o código não sobe de superfície. */
+.chat-git-panel .chat-action-diff {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+/* Tema claro: o diff também fica NO canvas do chat (branco), sem caixa cinza —
+   as próprias linhas add/del (verde/vermelho) já separam do papel. */
+:root[data-theme="light"] .chat-git-panel .chat-action-diff {
+  background: transparent;
+}
+
+/* Dentro de card de ferramenta: só a borda externa do card */
+.chat-action-card .chat-action-diff {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.chat-action-card .chat-diff-file {
+  border-bottom-color: color-mix(in srgb, var(--chat-action-card-border) 70%, transparent);
+  background: var(--chat-action-card-bg);
+}
+
+.chat-action-diff.chat-action-output-summary {
+  overflow-y: auto;
+  max-height: var(--chat-action-summary-max-height);
+}
+
+.chat-action-diff.chat-action-output-summary::after {
+  position: sticky;
+  display: block;
+  margin-top: -1.75rem;
+  height: 1.75rem;
+  z-index: 1;
+}
+
+.chat-diff-file {
+  position: static;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid var(--chat-code-border);
+  background: transparent;
+  color: var(--chat-code-fg);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.chat-action-diff.chat-action-output-summary .chat-diff-file {
+  position: sticky;
+  top: 0;
+  background: var(--chat-action-card-bg, var(--chat-code-surface));
+}
+
+.chat-diff-file-name {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.chat-diff-file-icon {
+  width: 0.8rem;
+  height: 0.8rem;
+  flex-shrink: 0;
+  color: var(--chat-code-muted);
+}
+
+.chat-diff-file-stats {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.4rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  font-size: 0.6875rem;
+}
+
+.chat-diff-stat-add {
+  color: var(--chat-code-gutter-add);
+}
+
+.chat-diff-stat-remove {
+  color: var(--chat-code-gutter-remove);
+}
+
+.chat-diff-file + .chat-diff-file {
+  margin-top: 0.5rem;
+  padding-top: 0.35rem;
+  border-top: none;
+}
+
+.chat-diff-line {
+  display: grid;
+  grid-template-columns: 0.8rem 2.35rem minmax(0, 1fr);
+  align-items: stretch;
+  column-gap: 0.2rem;
+  min-height: 1.55em;
+  padding: 0;
+}
+
+.chat-diff-gutter {
+  color: var(--chat-diff-gutter, #484f58);
+  text-align: center;
+  user-select: none;
+  font-size: inherit;
+  line-height: 1.55;
+  font-weight: 400;
+  padding: 0;
+}
+
+.chat-diff-line--remove .chat-diff-gutter {
+  color: var(--chat-diff-remove-gutter, #f85149);
+  background: transparent;
+}
+
+.chat-diff-line--add .chat-diff-gutter {
+  color: var(--chat-diff-add-gutter, #3fb950);
+  background: transparent;
+}
+
+.chat-diff-lno {
+  color: var(--chat-diff-lno, #6e7681);
+  text-align: right;
+  user-select: none;
+  font-size: inherit;
+  line-height: 1.55;
+  padding: 0 0.35rem 0 0;
+  border-right: none;
+}
+
+.chat-diff-line--remove .chat-diff-lno {
+  color: var(--chat-diff-remove-gutter, #f85149);
+  background: transparent;
+}
+
+.chat-diff-line--add .chat-diff-lno {
+  color: var(--chat-diff-add-gutter, #3fb950);
+  background: transparent;
+}
+
+.chat-diff-code-wrap {
+  margin: 0;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: visible;
+  overscroll-behavior-x: contain;
+  padding: 0;
+  background: transparent;
+  border: none;
+}
+
+.chat-action-diff pre.chat-diff-code-wrap > code.chat-diff-code.hljs {
+  display: block;
+  overflow-x: visible;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  font-size: inherit;
+  line-height: inherit;
+  font-weight: inherit;
+}
+
+.chat-diff-code {
+  display: block;
+  min-width: 0;
+  white-space: pre;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: var(--chat-code-fg);
+  font-weight: 400;
+}
+
+.chat-diff-code.hljs,
+.chat-diff-code .hljs {
+  display: block;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  white-space: pre;
+}
+
+.chat-diff-line--context {
+  background: transparent;
+}
+
+.chat-diff-line--remove {
+  background: var(--chat-code-line-remove);
+}
+
+.chat-diff-line--add {
+  background: var(--chat-code-line-add);
+}
+
+/* Chip que colapsa um trecho longo de linhas sem modificação. */
+.chat-diff-collapse {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.1rem 0 0.1rem 2.85rem;
+  border: none;
+  background: transparent;
+  color: var(--chat-code-muted);
+  font-family: inherit;
+  font-size: inherit;
+  line-height: 1.45;
+  text-align: left;
+  cursor: pointer;
+  transition: color 120ms ease, background-color 120ms ease;
+}
+
+.chat-diff-collapse:hover {
+  color: var(--chat-code-fg);
+  background: color-mix(in srgb, var(--chat-code-fg) 6%, transparent);
+}
+
+.chat-diff-collapse-icon {
+  width: 0.85em;
+  height: 0.85em;
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+/* Separador entre hunks (o 2º @@ em diante) — mostra o salto de linhas. */
+.chat-diff-hunk {
+  padding: 0.15rem 0 0.15rem 2.85rem;
+  margin: 0.15rem 0;
+  color: var(--chat-code-muted);
+  font-family: inherit;
+  font-size: inherit;
+  line-height: 1.45;
+  white-space: pre;
+  overflow-x: auto;
+  border-top: 1px solid
+    color-mix(in srgb, var(--chat-code-muted) 22%, transparent);
+}
+
+.chat-diff-word-remove {
+  border-radius: 0.15rem;
+  background: var(--chat-code-word-remove);
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.chat-diff-word-add {
+  border-radius: 0.15rem;
+  background: var(--chat-code-word-add);
+  font-size: inherit;
+  line-height: inherit;
+}
+
+[data-chat-messages] .markdown-body .chat-action-diff {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  font-size: var(--chat-action-code-size, 0.75rem);
+}
+
+/* Syntax unificada — action code + diff */
+.chat-action-code .hljs-keyword,
+.chat-action-code .hljs-selsn-tag,
+.chat-action-diff .hljs-keyword,
+.chat-action-diff .hljs-selsn-tag {
+  color: var(--chat-code-syntax-keyword);
+}
+
+.chat-action-code .hljs-string,
+.chat-action-code .hljs-regexp,
+.chat-action-diff .hljs-string,
+.chat-action-diff .hljs-regexp {
+  color: var(--chat-code-syntax-string);
+}
+
+.chat-action-code .hljs-built_in,
+.chat-action-code .hljs-type,
+.chat-action-code .hljs-title.class_,
+.chat-action-code .hljs-class .hljs-title,
+.chat-action-diff .hljs-built_in,
+.chat-action-diff .hljs-type,
+.chat-action-diff .hljs-title.class_,
+.chat-action-diff .hljs-class .hljs-title {
+  color: var(--chat-code-syntax-type);
+}
+
+.chat-action-code .hljs-title.function_,
+.chat-action-code .hljs-title,
+.chat-action-diff .hljs-title.function_,
+.chat-action-diff .hljs-title {
+  color: var(--chat-code-syntax-built-in);
+}
+
+.chat-action-code .hljs-attr,
+.chat-action-code .hljs-attribute,
+.chat-action-code .hljs-property,
+.chat-action-diff .hljs-attr,
+.chat-action-diff .hljs-attribute,
+.chat-action-diff .hljs-property {
+  color: var(--chat-code-syntax-attr);
+}
+
+.chat-action-code .hljs-number,
+.chat-action-code .hljs-literal,
+.chat-action-diff .hljs-number,
+.chat-action-diff .hljs-literal {
+  color: var(--chat-code-syntax-number);
+}
+
+.chat-action-code .hljs-variable,
+.chat-action-code .hljs-subst,
+.chat-action-code .hljs-params,
+.chat-action-diff .hljs-variable,
+.chat-action-diff .hljs-subst,
+.chat-action-diff .hljs-params {
+  color: var(--chat-code-syntax-variable);
+}
+
+.chat-action-code .hljs-meta,
+.chat-action-diff .hljs-meta {
+  color: var(--chat-code-syntax-meta);
+}
+
+.chat-action-code .hljs-comment,
+.chat-action-diff .hljs-comment {
+  color: var(--chat-code-syntax-comment);
+  font-style: italic;
+}
+
+.chat-action-code .hljs-punctuation,
+.chat-action-code .hljs-operator,
+.chat-action-diff .hljs-punctuation,
+.chat-action-diff .hljs-operator {
+  color: var(--chat-code-syntax-operator);
+}
+
+/* Blocos de código MARKDOWN (resposta do agente) usam a MESMA paleta calma do
+   Super Notepad — antes carregavam o tema github-dark (arco-íris) por <link>, que
+   destoava do canvas opaco. Agora tudo (action, diff, markdown) fala a mesma
+   língua de cor. O <pre>.chat-md-pre já dá o fundo/cor base. */
+.markdown-body .hljs-keyword,
+.markdown-body .hljs-selsn-tag,
+.markdown-body .hljs-section,
+.markdown-body .hljs-doctag,
+.markdown-body .hljs-name {
+  color: var(--chat-code-syntax-keyword);
+}
+.markdown-body .hljs-string,
+.markdown-body .hljs-regexp,
+.markdown-body .hljs-symbol,
+.markdown-body .hljs-bullet {
+  color: var(--chat-code-syntax-string);
+}
+.markdown-body .hljs-built_in,
+.markdown-body .hljs-type,
+.markdown-body .hljs-title.class_,
+.markdown-body .hljs-class .hljs-title {
+  color: var(--chat-code-syntax-type);
+}
+.markdown-body .hljs-title.function_,
+.markdown-body .hljs-title {
+  color: var(--chat-code-syntax-built-in);
+}
+.markdown-body .hljs-attr,
+.markdown-body .hljs-attribute,
+.markdown-body .hljs-property,
+.markdown-body .hljs-selsn-attr,
+.markdown-body .hljs-selsn-class,
+.markdown-body .hljs-selsn-id {
+  color: var(--chat-code-syntax-attr);
+}
+.markdown-body .hljs-number,
+.markdown-body .hljs-literal,
+.markdown-body .hljs-template-variable {
+  color: var(--chat-code-syntax-number);
+}
+.markdown-body .hljs-variable,
+.markdown-body .hljs-subst,
+.markdown-body .hljs-params {
+  color: var(--chat-code-syntax-variable);
+}
+.markdown-body .hljs-meta,
+.markdown-body .hljs-meta .hljs-keyword {
+  color: var(--chat-code-syntax-meta);
+}
+.markdown-body .hljs-comment,
+.markdown-body .hljs-quote {
+  color: var(--chat-code-syntax-comment);
+  font-style: italic;
+}
+.markdown-body .hljs-punctuation,
+.markdown-body .hljs-operator {
+  color: var(--chat-code-syntax-operator);
+}
+.markdown-body .hljs-emphasis {
+  font-style: italic;
+}
+.markdown-body .hljs-strong {
+  font-weight: 600;
+}
+
+.chat-action-lint-callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.55rem;
+  border-left: 2px solid var(--chat-lint-border);
+  border-radius: 0.25rem;
+  background: var(--chat-lint-bg);
+  color: var(--chat-lint-fg);
+  font-size: var(--chat-text-meta, 0.8125rem);
+  line-height: 1.4;
+}
+
+.chat-action-lint-callout--compact {
+  max-height: 2.5rem;
+  align-items: center;
+  overflow: hidden;
+}
+
+.chat-action-lint-callout pre {
+  margin: 0;
+  white-space: pre-wrap;
+  font-family: var(--theme-font-mono);
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+.chat-action-lint-icon {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+  color: var(--chat-lint-fg);
+}
+
+.chat-action-lint-callout--compact .chat-action-lint-icon {
+  margin-top: 0;
+}
+
+.chat-action-output-friendly {
+  font-family: var(--theme-font-sans);
+  font-size: var(--chat-text-meta);
+  line-height: 1.55;
+  color: color-mix(in srgb, var(--foreground) 82%, transparent);
+}
+
+.chat-action-output-friendly--list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  white-space: pre-wrap;
+}
+
+.chat-turn-closure {
+  margin-top: 0.25rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--border-color) 55%, transparent);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--surface-hover) 40%, transparent);
+  color: color-mix(in srgb, var(--foreground) 88%, transparent);
+}
+
+.chat-turn-closure p {
+  margin: 0 0 0.4rem;
+}
+
+.chat-turn-closure p:last-child {
+  margin-bottom: 0;
+}
+
+.chat-turn-closure ul,
+.chat-turn-closure ol {
+  margin: 0.35rem 0 0.5rem;
+  padding-left: 1.1rem;
+}
+
+.chat-turn-closure li {
+  margin: 0.15rem 0;
+}
+
+.chat-action-skill-panel {
+  font-family: var(--theme-font-sans);
+}
+
+.chat-action-card-body .chat-skill-panel {
+  font-family: var(--theme-font-sans);
+  font-size: var(--chat-text-meta);
+  line-height: 1.45;
+}
+
+.chat-skill-content .chat-thinking-md {
+  gap: 0.3rem;
+}
+
+.chat-skill-content .chat-thinking-heading {
+  color: color-mix(in srgb, var(--foreground) 90%, var(--chat-footer-muted));
+}
+
+.chat-action-skill-panel::first-line {
+  font-weight: 500;
+  color: color-mix(in srgb, var(--foreground) 92%, transparent);
+}
+
+.chat-action-card-body .chat-action-code-wrap,
+.chat-action-card-body .chat-action-code {
+  padding: 0;
+  font-family: var(--theme-font-mono);
+  font-size: var(--chat-action-code-size, 0.75rem);
+  line-height: 1.5;
+}
+
+.chat-action-code-wrap {
+  margin: 0;
+  max-width: 100%;
+  min-width: 0;
+  font-family: var(--theme-font-mono);
+}
+
+.chat-action-code-wrap[data-variant="terminal"],
+.chat-action-code-wrap[data-variant="command"] {
+  color: var(--chat-terminal-fg);
+  /* Comando longo quebra a linha em vez de abrir barra horizontal. Um
+     comando é lido inteiro, não navegado lateralmente. */
+  overflow: visible;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.chat-action-code-wrap[data-variant="terminal"] .hljs-built_in,
+.chat-action-code-wrap[data-variant="command"] .hljs-built_in {
+  color: var(--chat-terminal-built-in);
+}
+
+.chat-action-code-wrap[data-variant="terminal"] .hljs-string,
+.chat-action-code-wrap[data-variant="terminal"] .hljs-regexp,
+.chat-action-code-wrap[data-variant="command"] .hljs-string,
+.chat-action-code-wrap[data-variant="command"] .hljs-regexp {
+  color: var(--chat-terminal-string);
+}
+
+.chat-action-code-wrap[data-variant="terminal"] .hljs-operator,
+.chat-action-code-wrap[data-variant="command"] .hljs-operator {
+  color: var(--chat-terminal-operator);
+}
+
+.chat-action-code-wrap[data-variant="terminal"] .hljs-attr,
+.chat-action-code-wrap[data-variant="command"] .hljs-attr {
+  color: var(--chat-terminal-attr);
+}
+
+.chat-action-code-wrap[data-variant="terminal"] .hljs-meta,
+.chat-action-code-wrap[data-variant="command"] .hljs-meta {
+  color: var(--chat-terminal-meta);
+}
+
+.chat-action-code-wrap[data-variant="terminal"] .hljs-keyword,
+.chat-action-code-wrap[data-variant="command"] .hljs-keyword {
+  color: var(--chat-terminal-keyword);
+}
+
+.chat-action-code-wrap[data-variant="terminal"] .chat-action-code-link,
+.chat-action-code-wrap[data-variant="command"] .chat-action-code-link {
+  color: var(--chat-terminal-link);
+}
+
+.chat-action-code-wrap[data-variant="terminal"] .chat-action-code-prompt,
+.chat-action-code-wrap[data-variant="command"] .chat-action-code-prompt {
+  color: var(--chat-terminal-prompt);
+}
+
+.chat-action-code {
+  margin: 0;
+  font-family: var(--theme-font-mono);
+  font-size: inherit;
+  line-height: inherit;
+  color: var(--chat-code-fg);
+}
+
+.chat-action-code-wrap[data-variant="output"] {
+  /* Saída de ferramenta é prosa: quebra. Só diff mantém rolagem horizontal,
+     porque ali o alinhamento das colunas É a informação. */
+  overflow-x: visible;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.chat-action-code-wrap[data-variant="output"] .chat-action-code,
+.chat-action-code-wrap[data-variant="output"] .hljs {
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.chat-action-code-wrap[data-variant="terminal"] .chat-action-code,
+.chat-action-code-wrap[data-variant="command"] .chat-action-code {
+  display: inline-block;
+  min-width: 100%;
+  white-space: pre;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.chat-action-code-wrap[data-variant="terminal"] .hljs,
+.chat-action-code-wrap[data-variant="command"] .hljs {
+  white-space: pre;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.chat-action-code .hljs {
+  display: block;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.chat-action-code-prompt,
+.chat-action-code .chat-action-code-prompt {
+  color: var(--chat-code-syntax-prompt);
+  user-select: none;
+}
+
+.chat-action-code .chat-action-code-link {
+  color: var(--chat-code-syntax-link);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--chat-code-syntax-link) 55%, transparent);
+  text-underline-offset: 2px;
+}
+
+.chat-action-code .chat-action-code-link:hover {
+  color: var(--chat-code-syntax-link-hover);
+  text-decoration-color: var(--chat-code-syntax-link-hover);
+}
+
+.chat-action-code-gap {
+  display: block;
+  min-height: 0.35em;
+}
+
+.chat-action-icon-square {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 1.625rem;
+  height: 1.625rem;
+  border-radius: 0.375rem;
+  background-color: var(--chat-action-pill-bg);
+  border: 1px solid color-mix(in srgb, var(--border-color) 45%, transparent);
+}
+
+.chat-action-detail-indent {
+  margin-left: calc(1.625rem + 0.625rem);
+}
+
+/* Running / thinking: varredura de luz sobre o texto. */
+.chat-action-shimmer,
+.chat-thinking-shimmer {
+  --chat-shimmer-base: color-mix(in srgb, var(--foreground) 42%, transparent);
+  --chat-shimmer-peak: var(--foreground);
+  /* Base sólida. O pulso de opacidade que havia aqui variava de 0.55 a 1 no
+     texto inteiro — pouco contraste, e a tela toda "respirando" não lê como
+     carregamento, lê como um bug de renderização. */
+  color: var(--chat-shimmer-base);
+}
+
+/* A varredura só entra onde o recorte no texto é suportado. Fora daí fica a
+   cor sólida acima — nunca texto invisível, que foi o motivo de este efeito
+   ter sido removido antes. */
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .chat-action-shimmer,
+  .chat-thinking-shimmer {
+    /* As duas pontas são a cor base, então o ladrilho emenda sem costura. */
+    background-image: linear-gradient(
+      100deg,
+      var(--chat-shimmer-base) 0%,
+      var(--chat-shimmer-base) 38%,
+      var(--chat-shimmer-peak) 50%,
+      var(--chat-shimmer-base) 62%,
+      var(--chat-shimmer-base) 100%
+    );
+    /* `repeat-x` + deslocamento de exatamente UM ladrilho: o degradê cobre o
+       texto o tempo todo. Com `no-repeat` havia um trecho do ciclo em que
+       nada pintava as letras e, como o preenchimento é transparente, elas
+       sumiam — era o "piscando". */
+    background-size: 14em 100%;
+    background-repeat: repeat-x;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: chat-shimmer-sweep 2.2s linear infinite;
+  }
+}
+
+/* Um ladrilho exato por volta — o loop fecha sem salto. */
+@keyframes chat-shimmer-sweep {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 14em 0;
+  }
+}
+
+/* Exploration group — tipografia alinhada ao texto do chat */
+.chat-explore-group {
+  font-size: var(--chat-text-body);
+  line-height: 1.625;
+  letter-spacing: -0.005em;
+  color: var(--foreground);
+}
+
+.chat-explore-group-header {
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+.chat-explore-group-icon {
+  color: color-mix(in srgb, var(--foreground) 72%, transparent);
+}
+
+.chat-explore-group-label {
+  font-size: inherit;
+  font-weight: 400;
+  line-height: inherit;
+  color: inherit;
+}
+
+.chat-explore-group-caret {
+  color: color-mix(in srgb, var(--foreground) 45%, transparent);
+}
+
+/* Reasoning — tipografia próxima do chat, mas tom secundário (não confundir com resposta). */
+.chat-thinking {
+  font-size: var(--chat-text-body);
+  line-height: 1.625;
+  letter-spacing: -0.005em;
+  color: color-mix(in srgb, var(--foreground) 58%, transparent);
+}
+
+.chat-thinking-header {
+  font-size: inherit;
+  line-height: inherit;
+  color: color-mix(in srgb, var(--foreground) 62%, transparent);
+}
+
+.chat-thinking-icon {
+  color: color-mix(in srgb, var(--foreground) 48%, transparent);
+}
+
+.chat-thinking-label {
+  font-size: inherit;
+  font-weight: 400;
+  line-height: inherit;
+  color: inherit;
+}
+
+.chat-thinking-caret {
+  color: color-mix(in srgb, var(--foreground) 40%, transparent);
+}
+
+.chat-thinking-body {
+  margin-top: 0.35rem;
+  margin-left: 0.35rem;
+  padding-left: 0.85rem;
+  border-left: 1px solid
+    color-mix(in srgb, var(--foreground) 14%, transparent);
+}
+
+.chat-thinking-body,
+.chat-thinking-md,
+.chat-thinking-steps,
+.chat-thinking-step {
+  font-size: var(--chat-text-meta, 0.8125rem);
+  line-height: 1.55;
+  color: color-mix(in srgb, var(--foreground) 52%, transparent);
+}
+
+.chat-thinking-md {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.chat-thinking-md--streaming {
+  opacity: 0.95;
+}
+
+.chat-thinking-md > *:first-child {
+  margin-top: 0;
+}
+
+.chat-thinking-md > *:last-child {
+  margin-bottom: 0;
+}
+
+.chat-thinking-p {
+  margin: 0;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+  font-weight: inherit;
+}
+
+.chat-thinking-heading {
+  margin: 0;
+  font-size: inherit;
+  line-height: inherit;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--foreground) 62%, transparent);
+}
+
+.chat-thinking-strong {
+  font-weight: 600;
+  color: color-mix(in srgb, var(--chat-footer-muted) 70%, var(--foreground));
+}
+
+.chat-thinking-em {
+  font-style: italic;
+}
+
+.chat-thinking-ul,
+.chat-thinking-ol {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+  display: block;
+  list-style-position: outside;
+}
+
+.chat-thinking-ul {
+  list-style-type: disc;
+}
+
+.chat-thinking-ol {
+  list-style-type: decimal;
+}
+
+.chat-thinking-li {
+  margin: 0.1rem 0;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+.chat-thinking-li::marker {
+  color: color-mix(in srgb, var(--chat-footer-muted) 55%, transparent);
+}
+
+.chat-thinking-quote {
+  margin: 0;
+  padding-left: 0.65rem;
+  border-left: 2px solid color-mix(in srgb, var(--border-color) 60%, transparent);
+  color: inherit;
+  font-size: inherit;
+}
+
+.chat-thinking-link {
+  color: var(--primary-accent);
+  text-decoration: none;
+}
+
+.chat-thinking-link:hover {
+  text-decoration: underline;
+}
+
+.chat-thinking-pre {
+  margin: 0.15rem 0;
+  overflow-x: auto;
+  border-radius: 0.35rem;
+  padding: 0.4rem 0.55rem;
+  background: color-mix(in srgb, var(--chat-code-surface) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--chat-code-border) 70%, transparent);
+  white-space: pre;
+  tab-size: 2;
+  word-break: normal;
+  overflow-wrap: normal;
+  font-family: var(--theme-font-mono);
+  font-size: 0.92em;
+  line-height: 1.5;
+}
+
+.chat-thinking-code-block {
+  display: block;
+  white-space: pre;
+  tab-size: 2;
+  word-break: normal;
+  overflow-wrap: normal;
+  font-family: var(--theme-font-mono);
+  font-size: inherit;
+  line-height: 1.4;
+  color: inherit;
+  background: transparent;
+}
+
+.delegate-summary .chat-thinking-md {
+  gap: 0.25rem;
+}
+
+.delegate-summary .chat-thinking-ul,
+.delegate-summary .chat-thinking-ol {
+  padding-left: 0.95rem;
+}
+
+.delegate-summary .chat-thinking-strong,
+.delegate-summary .chat-thinking-heading {
+  color: color-mix(in srgb, var(--foreground) 88%, var(--chat-footer-muted));
+}
+
+.delegate-summary hr {
+  margin: 0.35rem 0;
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--border-color) 55%, transparent);
+}
+
+/* Painel de delegação: prosa (o card de ação força mono por padrão). */
+.chat-action-card-body .chat-delegate-panel {
+  font-family: var(--theme-font-sans);
+  font-size: var(--chat-text-meta);
+  line-height: 1.45;
+}
+
+.chat-action-card-body .chat-delegate-panel .chat-thinking-code {
+  font-size: 0.92em;
+}
+
+.chat-thinking-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.chat-thinking-step {
+  margin: 0;
+  transition: opacity 300ms ease-out;
+}
+
+.chat-thinking-code {
+  font-family: var(--theme-font-mono);
+  font-size: inherit;
+  line-height: inherit;
+  letter-spacing: 0;
+  word-spacing: 0;
+  font-variant-ligatures: none;
+  border-radius: 0.2rem;
+  padding: 0 0.2rem;
+  background: color-mix(in srgb, var(--muted) 40%, transparent);
+  color: inherit;
+}
+
+/* Typing / loading dots (pulso suave, sem spinner) */
+@keyframes typing-dot {
+  0%, 80%, 100% {
+    transform: translateY(0) scale(0.85);
+    opacity: 0.35;
+  }
+  40% {
+    transform: translateY(-1px) scale(1);
+    opacity: 1;
+  }
+}
+
+.typing-dot {
+  animation: typing-dot 1.4s ease-in-out infinite;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: 0.16s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.32s;
+}
+
+
+/* ── Página de memória ─────────────────────────────────────────────────────
+   Animações de entrada curtas e não bloqueantes: nada atrasa a interação,
+   tudo respeita prefers-reduced-motion (bloco no fim do arquivo). */
+
+@keyframes memory-node-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Nós nascem escalonados — o grafo "acende" em vez de aparecer de uma vez.
+   O atraso é limitado para nunca deixar um nó chegando tarde demais. */
+.memory-node-enter {
+  animation: memory-node-in 260ms cubic-bezier(0.34, 1.3, 0.64, 1) both;
+  /* fill-box = a geometria do próprio nó (os dois círculos, centrados em
+     0,0 local). Sem isto a origem seria o canto do viewBox e o nó "voaria"
+     da esquerda superior até a posição. */
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes memory-edge-in {
+  from {
+    stroke-dashoffset: var(--memory-edge-len, 400);
+    opacity: 0;
+  }
+  to {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+/* A ligação se desenha entre os dois nós — reforça que é uma conexão. */
+.memory-edge-enter {
+  animation: memory-edge-in 420ms ease-out both;
+}
+
+/* Pulso do neurônio — o "choque" correndo sobre a ligação.
+ *
+ * Movido por `offset-path` (a mesma curva da aresta), então roda no
+ * compositor sem re-render do React — sobrevive à física do grafo, que
+ * redesenha o SVG a cada quadro. Aparece só em ligações que tocam uma memória
+ * lida há pouco: o cérebro dispara onde o pensamento passou, e fica quieto no
+ * resto. `offset-distance` de 0 a 100% percorre o fio; a opacidade acende e
+ * apaga nas pontas para o pulso nascer e morrer no soma, não surgir do nada. */
+@keyframes memory-pulse-run {
+  0% {
+    offset-distance: 0%;
+    opacity: 0;
+  }
+  3% {
+    opacity: 1;
+  }
+  /* O disparo acontece no primeiro terço do ciclo; o resto é SILÊNCIO.
+     Com o pulso ocupando o ciclo inteiro, cada fio virava uma esteira
+     rolando sem parar — parecia trânsito, não pensamento. Cérebro dispara em
+     rajada e cala. */
+  30% {
+    offset-distance: 100%;
+    opacity: 1;
+  }
+  34% {
+    offset-distance: 100%;
+    opacity: 0;
+  }
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+  }
+}
+
+.memory-pulse {
+  /* `auto` alinha o elemento à DIREÇÃO do caminho — é isso que transforma o
+     ponto em risco de impulso. Com rotação fixa o traço apontava sempre para
+     o mesmo lado e cruzava o fio de través nas curvas. */
+  offset-rotate: auto;
+  animation: memory-pulse-run linear infinite;
+  will-change: offset-distance, opacity;
+}
+
+@keyframes memory-panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.memory-panel-enter {
+  animation: memory-panel-in 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes memory-toolbar-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.memory-toolbar-enter {
+  animation: memory-toolbar-in 220ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-fade-in,
+  .motion-dialog-in,
+  .motion-message-in,
+  .chat-action-row-enter,
+  .chat-action-detail-enter,
+  .chat-action-expand,
+  .chat-action-shimmer,
+  .chat-thinking-shimmer,
+  .memory-node-enter,
+  .memory-edge-enter,
+  .memory-panel-enter,
+  .memory-toolbar-enter {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  /* Quem pediu menos movimento não quer o pulso correndo em loop. Fica no
+     início do fio, apagado — a ligação continua legível sem a animação. */
+  .memory-pulse {
+    animation: none !important;
+    opacity: 0 !important;
+  }
+
+  .composer-edge-reflect {
+    animation: none !important;
+    opacity: 0 !important;
+  }
+
+  .chat-action-shimmer,
+  .chat-thinking-shimmer {
+    animation: none;
+    background: none;
+    background-color: transparent;
+    -webkit-background-clip: border-box;
+    background-clip: border-box;
+    color: var(--chat-footer-muted) !important;
+    -webkit-text-fill-color: var(--chat-footer-muted);
+    opacity: 0.85;
+    transform: none;
+    backface-visibility: visible;
+  }
+
+  .typing-dot {
+    animation: none;
+    opacity: 0.55;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Sidebar — acento verde para hover/ícones; nav ativo usa --selection-surface. */
+#app-sidebar {
+  --primary-accent: #F04F57;
+  --sidebar-hover-bg: rgba(240, 79, 87, 0.12);
+}
+
+:root[data-theme="light"] #app-sidebar {
+  /* Verde escuro: o jade do tema escuro some sobre painel claro. */
+  --primary-accent: #C62A31;
+  --sidebar-hover-bg: rgba(198, 42, 49, 0.07);
+  --sidebar-border-accent: #D1D5DB;
+  --sidebar-label: #475569;
+  --sidebar-fg-muted: #334155;
+  --sidebar-icon-fg: #000000;
+}
+
+/* A sidebar declara `border-r border-(--divider)`, e o reset global acima
+   zera. Aqui ela é reativada de propósito.
+   O reset existe porque a separação padrão do projeto é por elevação de
+   superfície — mas sidebar e chat estão no MESMO tom (`#131316`), então não
+   há degrau de luminosidade a usar. Entre dois painéis no mesmo nível, um
+   fio é o separador adequado; o alternativo seria inventar um degrau só
+   para a sidebar, mexendo na paleta.
+   Só no estado ABERTO: recolhida, a sidebar é um trilho estreito de ícones e
+   já se lê como coisa à parte — ali o fio vira mais uma linha na tela sem
+   separar nada que já não estivesse separado. */
+#app-sidebar:not([data-collapsed]) {
+  border-right-width: 1px;
+  border-right-color: var(--divider);
+}
+
+/* Sidebar profile popover — must follow the global border reset above. */
+[data-sidebar-profile-menu] {
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--divider);
+}
+
+:root[data-theme="light"] [data-sidebar-profile-menu] {
+  border-color: var(--chat-tool-border, #E5E9EF);
+}
+
+/* Painéis no tema claro — borda suave, sem sombra */
+:root[data-theme="light"] [data-surface-panel] {
+  border-color: var(--border-color);
+  box-shadow: none;
+}
+
+/* Composer — borda visível (reset global zera border-width). */
+[data-chat-composer] {
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--chat-composer-border);
+}
+
+[data-chat-composer]:focus-within {
+  border-color: color-mix(in srgb, var(--border-color) 78%, white 12%);
+  /* sem sombra: a separação vem da escada de superfícies */
+  box-shadow: none;
+}
+
+:root[data-theme="light"] [data-chat-composer] {
+  box-shadow: none;
+  border-color: var(--chat-composer-border);
+}
+
+:root[data-theme="light"] [data-chat-composer]:focus-within {
+  border-color: color-mix(in srgb, var(--border-color) 88%, transparent);
+  box-shadow: none;
+}
+
+/* Glow de foco: sob o composer (não halo em volta). */
+[data-chat-composer]::after {
+  content: "";
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: 62%;
+  bottom: -22px;
+  z-index: -1;
+  border-radius: 50%;
+  /* Era um brilho radial; agora cor sólida translúcida. */
+  background: rgba(255, 255, 255, 0.04);
+  opacity: 0;
+  pointer-events: none;
+  filter: blur(16px);
+  transition: opacity 220ms ease;
+}
+
+[data-chat-composer]:focus-within::after {
+  opacity: 1;
+}
+
+:root[data-theme="light"] [data-chat-composer]::after {
+  background: color-mix(in srgb, var(--primary-accent) 8%, transparent);
+}
+
+/* Chat — mensagens: cor #000 no tema claro + secções indentadas com barra lateral */
+:root[data-theme="light"] [data-chat-messages] {
+  color: var(--chat-message-fg, #000000);
+  --chat-tool-card-bg: #F4F6F8;
+  --chat-table-header-bg: #EEF1F5;
+  --chat-tool-rail-icon-fg: #64748B;
+  --chat-action-card-bg: color-mix(in srgb, #F4F6F8 92%, transparent);
+  --chat-action-card-border: color-mix(in srgb, var(--border-color) 42%, transparent);
+  --chat-action-card-shadow: none;
+  --chat-footer-muted: #64748B;
+}
+
+:root[data-theme="light"] [data-chat-messages] .markdown-body,
+:root[data-theme="light"] [data-chat-messages] .markdown-body p,
+:root[data-theme="light"] [data-chat-messages] .markdown-body strong,
+:root[data-theme="light"] [data-chat-messages] .markdown-body blockquote,
+:root[data-theme="light"] [data-chat-messages] .markdown-body li,
+:root[data-theme="light"] [data-chat-messages] .text-foreground {
+  color: var(--chat-message-fg, #000000);
+}
+
+[data-chat-messages] .markdown-body .chat-section-body,
+[data-chat-messages] .markdown-body blockquote.chat-section-body {
+  margin-left: 0.75rem;
+  margin-top: 0;
+  margin-bottom: 0;
+  padding: 0.35rem 0 0.35rem 0.75rem;
+  border-left: 2px solid var(--chat-section-border);
+  color: color-mix(in srgb, var(--foreground) 88%, transparent);
+}
+
+[data-chat-messages] .markdown-body .chat-section-body > .chat-md-p {
+  margin: 0;
+}
+
+[data-chat-messages] .markdown-body p:has(> strong:only-child),
+[data-chat-messages] .markdown-body .chat-md-p:has(> strong:only-child) {
+  margin-bottom: 0;
+  font-weight: 600;
+}
+
+[data-chat-tool-timeline] {
+  --chat-tool-rail-gap: 0.5rem;
+}
+
+/* Espaçamento único via flex+gap — sem margins Tailwind a competir. */
+[data-chat-messages] .markdown-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  font-size: var(--chat-text-body);
+  line-height: 1.7;
+  letter-spacing: -0.005em;
+}
+
+[data-chat-messages] .markdown-body > * {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+[data-chat-messages] .markdown-body > :is(h1, h2, .chat-md-h1, .chat-md-h2):not(:first-child) {
+  margin-top: 0.55rem;
+}
+
+[data-chat-messages] .markdown-body > :is(h3, h4, .chat-md-h3, .chat-md-h4):not(:first-child) {
+  margin-top: 0.35rem;
+}
+
+[data-chat-messages] .markdown-body > p:has(> strong:only-child):not(:first-child),
+[data-chat-messages] .markdown-body > .chat-md-p:has(> strong:only-child):not(:first-child) {
+  margin-top: 0.45rem;
+}
+
+[data-chat-messages] .markdown-body .chat-md-p,
+[data-chat-messages] .markdown-body p,
+[data-chat-messages] .markdown-body li,
+[data-chat-messages] .markdown-body .chat-md-li,
+[data-chat-messages] .markdown-body blockquote {
+  font-size: inherit;
+  line-height: inherit;
+}
+
+/* Tipografia estrutural do Markdown: vale em QUALQUER .markdown-body
+   (plano no painel/modal, memória, Proativo), não só no stream do chat.
+   O Tailwind zera list-style e o peso dos headings. */
+.markdown-body .chat-md-h1,
+.markdown-body h1 {
+  /* No chat, títulos não devem TORRE sobre o corpo — só um degrau discreto
+     acima do padrão; o peso (700) já os distingue. */
+  font-size: 1.05em;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.4;
+}
+
+.markdown-body .chat-md-h2,
+.markdown-body h2 {
+  /* Mesmo tamanho do corpo, apenas em negrito — evita rótulos de seção
+     (ex.: "Título profissional") aparecendo maiores que o padrão. */
+  font-size: 1em;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.45;
+}
+
+.markdown-body .chat-md-h3,
+.markdown-body h3 {
+  font-size: 1em;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.45;
+}
+
+.markdown-body .chat-md-h4,
+.markdown-body h4 {
+  font-size: 0.98em;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.45;
+}
+
+.markdown-body .chat-md-h5,
+.markdown-body h5 {
+  font-size: 0.95em;
+  font-weight: 500;
+  color: color-mix(in srgb, var(--foreground) 90%, transparent);
+}
+
+.markdown-body .chat-md-h6,
+.markdown-body h6 {
+  font-size: 0.92em;
+  font-weight: 500;
+  color: color-mix(in srgb, var(--foreground) 80%, transparent);
+}
+
+.markdown-body .chat-md-ul,
+.markdown-body .chat-md-ol,
+.markdown-body ul,
+.markdown-body ol {
+  margin: 0.2rem 0 0.35rem;
+  /* Indentação sob o rótulo (ex.: "Feito:") — flex quebra list-style/markers. */
+  display: block;
+  padding-inline-start: 1.6rem;
+  list-style-position: outside;
+}
+
+.markdown-body .chat-md-ul,
+.markdown-body ul {
+  list-style-type: disc;
+}
+
+.markdown-body .chat-md-ol,
+.markdown-body ol {
+  list-style-type: decimal;
+}
+
+.markdown-body .chat-md-ul .chat-md-ul,
+.markdown-body .chat-md-ol .chat-md-ol,
+.markdown-body .chat-md-ul .chat-md-ol,
+.markdown-body .chat-md-ol .chat-md-ul,
+.markdown-body ul ul,
+.markdown-body ol ol,
+.markdown-body ul ol,
+.markdown-body ol ul {
+  margin-top: 0.25rem;
+  margin-bottom: 0.15rem;
+  padding-inline-start: 1.35rem;
+}
+
+.markdown-body .chat-md-li,
+.markdown-body li {
+  margin: 0 0 0.3rem;
+  padding-left: 0.2rem;
+  overflow-wrap: anywhere;
+}
+
+.markdown-body .chat-md-li:last-child,
+.markdown-body li:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body .chat-md-hr,
+.markdown-body hr {
+  margin: 0.35rem 0;
+  border: 0;
+  border-top: 1px solid var(--divider, var(--border-color));
+}
+
+/* Fences do chat: quietos (surface, não “buraco” preto) + whitespace:pre
+   obrigatório — hljs parte o código em spans; sem pre, a indentação some. */
+[data-chat-messages] .markdown-body .chat-md-pre {
+  margin: 0.55rem 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  border-radius: 0.45rem;
+  border: 1px solid var(--chat-code-border);
+  background: var(--chat-code-surface);
+  padding: 0.6rem 0.8rem;
+  font-family: var(--theme-font-mono);
+  font-size: var(--chat-action-code-size, 0.75rem);
+  line-height: 1.55;
+  color: var(--chat-code-fg);
+  white-space: pre !important;
+  tab-size: 2;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+/* Wrapper do bloco com botão de copiar: carrega a margem do bloco e zera a do
+   <pre> dentro, para o espaçamento não dobrar. */
+[data-chat-messages] .markdown-body .chat-code-wrap {
+  margin: 0.55rem 0;
+}
+[data-chat-messages] .markdown-body .chat-code-wrap:first-child {
+  margin-top: 0;
+}
+[data-chat-messages] .markdown-body .chat-code-wrap:last-child {
+  margin-bottom: 0;
+}
+[data-chat-messages] .markdown-body .chat-code-wrap .chat-md-pre {
+  margin: 0;
+}
+/* Corpo do bloco: coluna de números (opcional) + o código, lado a lado. */
+[data-chat-messages] .markdown-body .chat-code-body {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+}
+[data-chat-messages] .markdown-body .chat-code-body > .chat-md-pre {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Bloco COM cabeçalho de linguagem: a moldura (borda + cantos) sobe para o
+   wrapper e o <pre> dentro fica sem borda/raio, formando uma peça só. Separação
+   por luminosidade (divisória + um tom acima no cabeçalho), sem sombra. */
+[data-chat-messages] .markdown-body .chat-code-wrap--titled {
+  overflow: hidden;
+  border: 1px solid var(--chat-code-border);
+  border-radius: 0.45rem;
+  background: var(--chat-code-surface);
+}
+[data-chat-messages] .markdown-body .chat-code-wrap--titled .chat-md-pre {
+  border: 0;
+  border-radius: 0;
+}
+[data-chat-messages] .markdown-body .chat-code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.28rem 0.4rem 0.28rem 0.72rem;
+  border-bottom: 1px solid var(--chat-code-border);
+  background: color-mix(in srgb, var(--chat-code-surface) 92%, var(--foreground));
+}
+[data-chat-messages] .markdown-body .chat-code-lang {
+  font-family: var(--theme-font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+  color: var(--muted-foreground);
+  user-select: none;
+}
+[data-chat-messages] .markdown-body .chat-code-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  height: 1.45rem;
+  padding: 0 0.42rem;
+  border-radius: 0.32rem;
+  font-size: 0.68rem;
+  color: var(--muted-foreground);
+  transition: color 0.15s ease, background 0.15s ease;
+}
+[data-chat-messages] .markdown-body .chat-code-copy:hover {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 8%, transparent);
+}
+[data-chat-messages] .markdown-body .chat-code-copy:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--primary) 60%, transparent);
+  outline-offset: 1px;
+}
+[data-chat-messages] .markdown-body .chat-code-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+[data-chat-messages] .markdown-body .chat-code-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.45rem;
+  width: 1.45rem;
+  border-radius: 0.32rem;
+  color: var(--muted-foreground);
+  transition: color 0.15s ease, background 0.15s ease;
+}
+[data-chat-messages] .markdown-body .chat-code-btn:hover {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 8%, transparent);
+}
+[data-chat-messages] .markdown-body .chat-code-btn[data-active] {
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+}
+[data-chat-messages] .markdown-body .chat-code-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--primary) 60%, transparent);
+  outline-offset: 1px;
+}
+
+/* Coluna de números de linha: mesma tipografia/altura de linha/padding-vertical
+   do <pre> ao lado, para os números casarem com as linhas de código. */
+[data-chat-messages] .markdown-body .chat-code-gutter {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0.6rem 0.5rem 0.6rem 0.7rem;
+  border-right: 1px solid var(--chat-code-border);
+  background: var(--chat-code-surface);
+  font-family: var(--theme-font-mono);
+  font-size: var(--chat-action-code-size, 0.8125rem);
+  line-height: 1.55;
+  color: color-mix(in srgb, var(--chat-code-fg) 40%, transparent);
+  text-align: right;
+  user-select: none;
+  white-space: pre;
+  overflow: hidden;
+  tab-size: 2;
+}
+
+/* Quebra de linhas longas: o <pre> e o <code> passam a envolver em vez de
+   rolar na horizontal. */
+[data-chat-messages] .markdown-body .chat-md-pre.chat-md-pre--wrap {
+  white-space: pre-wrap !important;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  overflow-x: hidden;
+}
+/* Precisa exceder a especificidade da regra do <code> do hljs (0,4,2), que
+   fixa `white-space: pre !important` e `width: max-content`. */
+[data-chat-messages] .markdown-body pre.chat-md-pre.chat-md-pre--wrap > code.chat-md-code-block,
+[data-chat-messages] .markdown-body pre.chat-md-pre.chat-md-pre--wrap > code.hljs {
+  white-space: pre-wrap !important;
+  width: auto !important;
+  min-width: 0 !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+}
+
+[data-chat-messages] .markdown-body .chat-md-pre:first-child {
+  margin-top: 0;
+}
+
+[data-chat-messages] .markdown-body .chat-md-pre:last-child {
+  margin-bottom: 0;
+}
+
+[data-chat-messages] .markdown-body .chat-md-code-block {
+  display: block;
+  min-width: 100%;
+  width: max-content;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+  white-space: pre !important;
+  tab-size: 2;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+/* highlight.js theme overrides font/padding — inherit from pre wrapper */
+[data-chat-messages] .markdown-body pre.chat-md-pre > code.chat-md-code-block,
+[data-chat-messages] .markdown-body pre.chat-md-pre > code.hljs {
+  min-width: 100%;
+  width: max-content;
+  padding: 0 !important;
+  margin: 0;
+  background: transparent !important;
+  font-family: inherit !important;
+  font-size: var(--chat-action-code-size, 0.75rem) !important;
+  line-height: inherit;
+  color: inherit;
+  white-space: pre !important;
+  tab-size: 2;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+[data-chat-messages] .markdown-body pre.chat-md-pre .hljs,
+[data-chat-messages] .markdown-body pre.chat-md-pre .hljs * {
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: inherit;
+  white-space: inherit;
+  word-break: inherit;
+  overflow-wrap: inherit;
+}
+
+/* Tokens do fence: paleta cheia, sem lavar com o texto.
+   (O mix antigo de 72% com `--chat-code-fg` virava tudo cinza-pastel.) */
+[data-chat-messages] .markdown-body pre.chat-md-pre .hljs-keyword,
+[data-chat-messages] .markdown-body pre.chat-md-pre .hljs-selsn-tag,
+[data-chat-messages] .markdown-body pre.chat-md-pre .hljs-name {
+  color: var(--chat-code-syntax-keyword);
+}
+
+[data-chat-messages] .markdown-body pre.chat-md-pre .hljs-string,
+[data-chat-messages] .markdown-body pre.chat-md-pre .hljs-regexp,
+[data-chat-messages] .markdown-body pre.chat-md-pre .hljs-symbol {
+  color: var(--chat-code-syntax-string);
+}
+
+[data-chat-messages] .markdown-body pre.chat-md-pre .hljs-built_in,
+[data-chat-messages] .markdown-body pre.chat-md-pre .hljs-type,
+[data-chat-messages] .markdown-body pre.chat-md-pre .hljs-title.class_,
+[data-chat-messages] .markdown-body pre.chat-md-pre .hljs-class .hljs-title {
+  color: var(--chat-code-syntax-type);
+}
+
+[data-chat-messages] .markdown-body pre.chat-md-pre .hljs-title.function_,
+[data-chat-messages] .markdown-body pre.chat-md-pre .hljs-title {
+  color: var(--chat-code-syntax-built-in);
+}
+
+[data-chat-messages] .markdown-body pre.chat-md-pre .hljs-attr,
+[data-chat-messages] .markdown-body pre.chat-md-pre .hljs-attribute,
+[data-chat-messages] .markdown-body pre.chat-md-pre .hljs-property {
+  color: var(--chat-code-syntax-attr);
+}
+
+[data-chat-messages] .markdown-body pre.chat-md-pre .hljs-number,
+[data-chat-messages] .markdown-body pre.chat-md-pre .hljs-literal {
+  color: var(--chat-code-syntax-number);
+}
+
+[data-chat-messages] .markdown-body pre.chat-md-pre .hljs-variable,
+[data-chat-messages] .markdown-body pre.chat-md-pre .hljs-subst,
+[data-chat-messages] .markdown-body pre.chat-md-pre .hljs-params {
+  color: var(--chat-code-syntax-variable);
+}
+
+[data-chat-messages] .markdown-body pre.chat-md-pre .hljs-meta {
+  color: var(--chat-code-syntax-meta);
+}
+
+[data-chat-messages] .markdown-body pre.chat-md-pre .hljs-comment {
+  color: var(--chat-code-syntax-comment);
+  font-style: italic;
+}
+
+[data-chat-messages] .markdown-body pre.chat-md-pre .hljs-punctuation,
+[data-chat-messages] .markdown-body pre.chat-md-pre .hljs-operator {
+  color: var(--chat-code-syntax-operator);
+}
+
+[data-chat-tool-timeline] svg {
+  width: var(--chat-action-icon-size);
+  height: var(--chat-action-icon-size);
+  flex-shrink: 0;
+}
+
+/* Tabelas markdown — legíveis; wrap em prosa, scroll se precisar.
+   Evitar overflow-wrap:anywhere + width:100%: a largura mínima da célula
+   vira ~1 caractere e colunas curtas (ex. "Módulo") são esmagadas por
+   chips nowrap na coluna vizinha. */
+[data-chat-messages] .markdown-body .chat-markdown-table {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+[data-chat-messages] .markdown-body .chat-markdown-table table {
+  width: max-content;
+  min-width: 100%;
+  table-layout: auto;
+  border-collapse: collapse;
+}
+
+[data-chat-messages] .markdown-body .chat-markdown-table th,
+[data-chat-messages] .markdown-body .chat-markdown-table td {
+  padding: 0.35rem 0.65rem;
+  vertical-align: top;
+  text-align: left;
+  font-family: var(--theme-font-sans);
+  font-size: 0.92em;
+  line-height: 1.45;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-color) 55%, transparent);
+  color: color-mix(in srgb, var(--foreground) 88%, transparent);
+}
+
+[data-chat-messages] .markdown-body .chat-markdown-table tr:last-child th,
+[data-chat-messages] .markdown-body .chat-markdown-table tr:last-child td {
+  border-bottom: none;
+}
+
+[data-chat-messages] .markdown-body .chat-markdown-table th {
+  font-weight: 600;
+  font-size: 0.78em;
+  letter-spacing: 0.01em;
+  color: var(--chat-footer-muted);
+  background: var(--chat-table-header-bg, transparent);
+}
+
+/* Coluna de rótulo: encolher ao conteúdo, sem quebrar no meio da palavra */
+[data-chat-messages] .markdown-body .chat-markdown-table td:first-child,
+[data-chat-messages] .markdown-body .chat-markdown-table th:first-child {
+  color: color-mix(in srgb, var(--foreground) 78%, transparent);
+  width: 1%;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  padding-right: 0.875rem;
+  vertical-align: top;
+}
+
+[data-chat-messages] .markdown-body .chat-markdown-table :is(td, th) code.chat-inline-code {
+  font-family: var(--theme-font-mono);
+  font-size: 0.92em;
+  font-weight: 400;
+  line-height: inherit;
+  letter-spacing: 0;
+  border-radius: 0.25rem;
+  padding: 0.05em 0.28em;
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
+  box-decoration-break: unset;
+  -webkit-box-decoration-break: unset;
+  color: var(--chat-inline-code-fg);
+  background: var(--chat-inline-code-bg);
+  border: 1px solid var(--chat-inline-code-border);
+}
+
+/* Inline code — neutro, legível, sem arco-íris por tipo */
+[data-chat-messages] .markdown-body :not(pre) > code.chat-inline-code {
+  font-family: var(--theme-font-mono);
+  /* Alinhado ao bloco de código (~12px): antes o inline (0.92em) ficava maior
+     que o bloco, deixando as fontes de código inconsistentes. */
+  font-size: 0.82em;
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: 0;
+  word-spacing: 0;
+  font-variant-ligatures: none;
+  border-radius: 0.3rem;
+  padding: 0.1em 0.35em;
+  word-break: break-all;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  color: var(--chat-inline-code-fg);
+  background: var(--chat-inline-code-bg);
+  border: 1px solid var(--chat-inline-code-border);
+}
+
+/* highlight.js injeta `code.hljs{padding:3px 5px}` — não aplicar em inline do chat */
+[data-chat-messages] .markdown-body :not(pre) > code.chat-inline-code.hljs {
+  padding: 0.1em 0.35em;
+  background: var(--chat-inline-code-bg);
+  color: var(--chat-inline-code-fg);
+}
+
+[data-chat-messages] .markdown-body :not(pre) > code.chat-inline-code .hljs-keyword,
+[data-chat-messages] .markdown-body :not(pre) > code.chat-inline-code .hljs-number,
+[data-chat-messages] .markdown-body :not(pre) > code.chat-inline-code .hljs-built_in,
+[data-chat-messages] .markdown-body :not(pre) > code.chat-inline-code .hljs-attribute,
+[data-chat-messages] .markdown-body :not(pre) > code.chat-inline-code .hljs-literal,
+[data-chat-messages] .markdown-body :not(pre) > code.chat-inline-code .hljs-symbol,
+[data-chat-messages] .markdown-body :not(pre) > code.chat-inline-code .hljs-title,
+[data-chat-messages] .markdown-body :not(pre) > code.chat-inline-code .hljs-string,
+[data-chat-messages] .markdown-body :not(pre) > code.chat-inline-code .hljs-comment,
+[data-chat-messages] .markdown-body :not(pre) > code.chat-inline-code .hljs-meta,
+[data-chat-messages] .markdown-body :not(pre) > code.chat-inline-code .hljs-type,
+[data-chat-messages] .markdown-body :not(pre) > code.chat-inline-code .hljs-subst {
+  color: inherit;
+  font-weight: inherit;
+  background: transparent;
+  padding: 0;
+  letter-spacing: inherit;
+  word-spacing: inherit;
+}
+
+:root[data-theme="light"] {
+  /* Mesmo vermelho pálido do escuro, escurecido para o fundo claro. */
+  --chat-inline-code-fg: color-mix(in srgb, #f04f57 60%, #3f3f46);
+  --chat-inline-code-bg: color-mix(in srgb, #f04f57 7%, #ffffff);
+  --chat-inline-code-border: color-mix(in srgb, #f04f57 16%, #ffffff);
+  /* Mesmas famílias do escuro, escurecidas para o fundo claro (≥4.5:1). */
+  --chat-code-fg: #1a1a1f;
+  --chat-code-muted: #6b6b76;
+  --chat-code-syntax-keyword: #6B3FA0;
+  --chat-code-syntax-string: #8A6418;
+  --chat-code-syntax-type: #1F6A8F;
+  --chat-code-syntax-built-in: #1B7A5A;
+  --chat-code-syntax-attr: #3D5A73;
+  --chat-code-syntax-number: #A85A20;
+  --chat-code-syntax-variable: #1a1a1f;
+  --chat-code-syntax-operator: #5C5C68;
+  --chat-code-syntax-comment: #6B6B76;
+  --chat-code-syntax-meta: #4A5A6A;
+  --chat-code-syntax-prompt: #1B7A5A;
+  --chat-code-syntax-link: #1F6A8F;
+  --chat-code-syntax-link-hover: #1B7A5A;
+  --chat-code-line-remove: rgba(207, 34, 46, 0.16);
+  --chat-code-line-add: rgba(26, 127, 55, 0.16);
+  --chat-code-word-remove: rgba(207, 34, 46, 0.34);
+  --chat-code-word-add: rgba(26, 127, 55, 0.34);
+  --chat-code-gutter-remove: #cf222e;
+  --chat-code-gutter-add: #1a7f37;
+  --chat-code-surface: #f6f8fa;
+  --chat-code-border: #d0d7de;
+  --chat-lint-fg: #a40e26;
+  --chat-lint-bg: rgba(207, 34, 46, 0.06);
+  --chat-lint-border: rgba(207, 34, 46, 0.28);
+  --chat-action-running-fg: color-mix(in srgb, var(--primary) 85%, transparent);
+  --chat-action-error-fg: var(--destructive);
+  --chat-action-cancelled-fg: color-mix(in srgb, var(--muted-foreground) 70%, transparent);
+  --chat-action-warning-fg: #9a6700;
+  --chat-action-card-shadow: none;
+  --chat-terminal-fg: var(--chat-code-fg);
+  --chat-terminal-prompt: var(--chat-code-syntax-prompt);
+  --chat-terminal-built-in: var(--chat-code-syntax-built-in);
+  --chat-terminal-string: var(--chat-code-syntax-string);
+  --chat-terminal-operator: var(--chat-code-syntax-operator);
+  --chat-terminal-attr: var(--chat-code-syntax-attr);
+  --chat-terminal-meta: var(--chat-code-syntax-meta);
+  --chat-terminal-keyword: var(--chat-code-syntax-keyword);
+  --chat-terminal-link: var(--chat-code-syntax-link);
+}
+
+#app-sidebar .scrollbar-none::-webkit-scrollbar-thumb {
+  background: rgba(240, 79, 87, 0.22);
+}
+
+#app-sidebar .scrollbar-none::-webkit-scrollbar-thumb:hover {
+  background: rgba(240, 79, 87, 0.38);
+}
+
+/* Config modal — campos e nav mais leves no tema claro */
+:root[data-theme="light"] [data-config-dialog] {
+  --config-nav-bg: #F6F8FA;
+}
+
+[data-config-dialog] .sn-field {
+  background: var(--config-nav-bg, var(--field-bg));
+}
+
+[data-config-dialog] [role="radiogroup"].rounded-xl {
+  background: var(--config-nav-bg, var(--surface));
+}
+
+/* Form fields only — must follow the global border reset above. */
+.sn-field {
+  box-sizing: border-box;
+  height: var(--field-height);
+  min-height: var(--field-height);
+  border-width: 1px;
+  border-style: solid;
+  border-radius: var(--field-radius);
+  border-color: var(--field-border);
+  background-color: var(--field-bg);
+  transition:
+    border-color var(--motion-duration-normal),
+    box-shadow var(--motion-duration-normal);
+}
+
+textarea.sn-field {
+  height: auto;
+  min-height: var(--field-textarea-min-height);
+}
+
+.sn-field:focus-visible,
+.sn-field:focus-within {
+  border-color: var(--field-border-focus);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-accent) 20%, transparent);
+  outline: none;
+}
+
+.sn-field:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.sn-checkbox {
+  appearance: none;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 0.25rem;
+  border-color: var(--field-border);
+  background-color: var(--field-bg);
+  transition:
+    background-color var(--motion-duration-normal),
+    border-color var(--motion-duration-normal);
+}
+
+.sn-checkbox:checked {
+  border-color: var(--primary-accent);
+  background-color: var(--primary-accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 0.75rem 0.75rem;
+}
+
+.sn-checkbox:focus-visible {
+  border-color: var(--field-border-focus);
+  outline: none;
+}
+
+.sn-checkbox:checked:focus-visible {
+  border-color: var(--primary-accent);
+}
+
+.sn-range {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 1.25rem;
+  border-radius: 9999px;
+  background: transparent;
+}
+
+.sn-range:focus-visible {
+  outline: none;
+}
+
+.sn-range::-webkit-slider-runnable-track {
+  height: 0.4rem;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--foreground) 18%, transparent);
+}
+
+.sn-range::-moz-range-track {
+  height: 0.4rem;
+  border-radius: 9999px;
+  border: none;
+  background: color-mix(in srgb, var(--foreground) 18%, transparent);
+}
+
+.sn-range::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  margin-top: -0.3rem;
+  width: 1rem;
+  height: 1rem;
+  border: 1px solid color-mix(in srgb, var(--primary-accent) 45%, transparent);
+  border-radius: 9999px;
+  background: var(--primary-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--background) 80%, transparent);
+}
+
+.sn-range::-moz-range-thumb {
+  width: 1rem;
+  height: 1rem;
+  border: 1px solid color-mix(in srgb, var(--primary-accent) 45%, transparent);
+  border-radius: 9999px;
+  background: var(--primary-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--background) 80%, transparent);
+}
+
+.sn-range:focus-visible::-webkit-slider-thumb {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--background) 80%, transparent),
+    0 0 0 4px color-mix(in srgb, var(--primary-accent) 26%, transparent);
+}
+
+.sn-range:focus-visible::-moz-range-thumb {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--background) 80%, transparent),
+    0 0 0 4px color-mix(in srgb, var(--primary-accent) 26%, transparent);
+}
+
+/* Chat composer — inline field, not full form textarea sizing */
+[data-chat-composer] .sn-field {
+  height: auto;
+  min-height: 0;
+  border-width: 0;
+  background: transparent;
+}
+
+[data-chat-composer] textarea.sn-field {
+  min-height: 1.5rem;
+}
+
+/* Reflexo na borda do composer — ponta de agulha, variantes via data-variant. */
+@property --composer-reflect-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes composer-reflect-lap-cw {
+  0% {
+    --composer-reflect-angle: 200deg;
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    --composer-reflect-angle: 560deg;
+    opacity: 0;
+  }
+}
+
+@keyframes composer-reflect-lap-ccw {
+  0% {
+    --composer-reflect-angle: 200deg;
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    --composer-reflect-angle: -160deg;
+    opacity: 0;
+  }
+}
+
+@keyframes composer-reflect-bottom {
+  0% {
+    --composer-reflect-angle: 130deg;
+    opacity: 0;
+  }
+  14% {
+    opacity: 1;
+  }
+  86% {
+    opacity: 1;
+  }
+  100% {
+    --composer-reflect-angle: 230deg;
+    opacity: 0;
+  }
+}
+
+@keyframes composer-reflect-retrace {
+  0% {
+    --composer-reflect-angle: 150deg;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  45% {
+    --composer-reflect-angle: 250deg;
+    opacity: 1;
+  }
+  55% {
+    --composer-reflect-angle: 250deg;
+    opacity: 0.7;
+  }
+  90% {
+    --composer-reflect-angle: 150deg;
+    opacity: 1;
+  }
+  100% {
+    --composer-reflect-angle: 150deg;
+    opacity: 0;
+  }
+}
+
+@keyframes composer-reflect-sides {
+  0% {
+    --composer-reflect-angle: 70deg;
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  28% {
+    --composer-reflect-angle: 110deg;
+    opacity: 1;
+  }
+  36% {
+    opacity: 0;
+  }
+  42% {
+    --composer-reflect-angle: 250deg;
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  78% {
+    --composer-reflect-angle: 290deg;
+    opacity: 1;
+  }
+  100% {
+    --composer-reflect-angle: 290deg;
+    opacity: 0;
+  }
+}
+
+.composer-edge-reflect {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  border-radius: 18px;
+  padding: 1px;
+  opacity: 0;
+  /* Era um conic-gradient girando; agora realce sólido. */
+  background: rgba(255, 255, 255, 0.16);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+.composer-edge-reflect[data-active="true"][data-variant="lap-cw"] {
+  animation: composer-reflect-lap-cw var(--composer-reflect-ms, 5.5s) ease-in-out both;
+}
+
+.composer-edge-reflect[data-active="true"][data-variant="lap-ccw"] {
+  animation: composer-reflect-lap-ccw var(--composer-reflect-ms, 5.5s) ease-in-out both;
+}
+
+.composer-edge-reflect[data-active="true"][data-variant="bottom"] {
+  animation: composer-reflect-bottom var(--composer-reflect-ms, 2.6s) ease-in-out both;
+}
+
+.composer-edge-reflect[data-active="true"][data-variant="retrace"] {
+  animation: composer-reflect-retrace var(--composer-reflect-ms, 3.2s) ease-in-out both;
+}
+
+.composer-edge-reflect[data-active="true"][data-variant="sides"] {
+  animation: composer-reflect-sides var(--composer-reflect-ms, 3s) ease-in-out both;
+}
+
+:root[data-theme="light"] .composer-edge-reflect {
+  background: color-mix(in srgb, var(--primary-accent) 22%, transparent);
+}
+
+
+/* ── Preenchimento primário sólido ─────────────────────────────────────────
+   `text-primary` e `bg-primary` saem os dois de `--color-primary` no
+   Tailwind, mas aqui têm exigências opostas: o verde escuro `#9E2831` é
+   ótimo como FUNDO de texto branco (7.2:1) e some como TEXTO sobre o canvas
+   quase preto (2.6:1). Nenhum verde único passa nos dois.
+
+   Esta regra separa só o caso sólido. As variantes com opacidade
+   (`bg-primary/10` e afins) continuam no acento de propósito: uma lavagem a
+   10% do verde escuro seria invisível sobre o canvas. */
+.bg-primary {
+  background-color: var(--primary-fill, var(--primary-accent));
+}

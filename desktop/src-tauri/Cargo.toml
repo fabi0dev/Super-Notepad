@@ -1,0 +1,49 @@
+[package]
+name = "super-notepad-desktop"
+version = "0.1.0"
+description = "Janela nativa do app de Super-Notepad"
+edition = "2021"
+rust-version = "1.77.2"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# `macos-private-api` acompanha o `macOSPrivateApi` do tauri.conf.json — é o
+# que habilita a API de fundo transparente no macOS. O build falha de
+# propósito se os dois discordarem. Só afeta distribuição pela Mac App Store,
+# que rejeita API privada; aqui o empacotamento é `.app`/`.dmg`.
+tauri = { version = "2", features = [
+    "macos-private-api",
+    "tray-icon",
+    # Decodifica o PNG embutido da silhueta do tray (Image::from_bytes).
+    "image-png",
+] }
+tauri-plugin-notification = "2"
+# Diálogo nativo "salvar como" (export do Backup escolhe a pasta/arquivo).
+tauri-plugin-dialog = "2"
+# Canal oneshot para receber o resultado do diálogo sem bloquear a main thread.
+tokio = { version = "1", features = ["sync"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# Desfoque do que está atrás da janela (NSVisualEffectView no macOS, acrylic
+# no Windows). No Linux quem compõe o desfoque é o próprio compositor.
+window-vibrancy = "0.6"
+
+# Correção ortográfica nativa da WKWebView (liga continuous spell checking) —
+# só macOS. O atributo HTML `spellcheck` sozinho não acende o sublinhado
+# ondulado na WKWebView; é preciso o flag nativo.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+# Notificação nativa via UNUserNotificationCenter: reusar o MESMO identifier por
+# conversa faz o SO SUBSTITUIR a notificação anterior em vez de empilhar — o que
+# o tauri-plugin-notification não faz no desktop (ignora id/group no `show`).
+objc2-foundation = { version = "0.3", features = ["NSString", "NSError"] }
+objc2-user-notifications = "0.3"
+# Bloco de completion handler exigido por requestAuthorizationWithOptions:.
+block2 = "0.6"
+
+[profile.release]
+codegen-units = 1
+lto = true
+strip = true
