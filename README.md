@@ -92,13 +92,25 @@ pnpm tauri dev
 
 ### 4. App do sistema (Windows)
 
-No Windows, o `install.ps1` (espelho do `install.sh`) faz tudo — venv, frontend,
-`desktop.json`, atalho e o instalador NSIS. No PowerShell, a partir da raiz do repo:
+No Windows, o `install.ps1` (espelho do `install.sh`) faz tudo — e, numa máquina
+limpa, **instala sozinho as dependências que faltarem via [winget](https://learn.microsoft.com/windows/package-manager/):**
+Python, Node.js (pnpm), Rust, o **MSVC C++ Build Tools** e o **WebView2 Runtime**
+(o Tauri precisa dos dois últimos no Windows). Depois cria o venv, compila o
+frontend, escreve o `desktop.json`, instala o atalho e gera o instalador NSIS.
+
+No PowerShell, a partir da raiz do repo:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\install.ps1
-# .\install.ps1 -NoApp   → só o backend/frontend, sem compilar o instalador
+# .\install.ps1 -NoApp        → só o backend/frontend (não instala Rust/Build Tools)
+# .\install.ps1 -NoBootstrap  → não instala nada automaticamente, apenas verifica
 ```
+
+Requisitos: Windows 10 (1809+) ou 11 com o **winget** (App Installer da Microsoft
+Store). A instalação do MSVC C++ Build Tools e do WebView2 pode abrir um prompt de
+**UAC (elevação)** — aceite-o. Se o script instalou algo novo (Node, Rust, Build
+Tools), **abra um novo terminal** antes de usar esses comandos numa próxima sessão:
+o `PATH` só é atualizado em janelas novas.
 
 Os passos manuais equivalentes estão abaixo. Os dados ficam em
 `%USERPROFILE%\.super-notepad` (espelhando o `Path.home()` do Python), e o venv
