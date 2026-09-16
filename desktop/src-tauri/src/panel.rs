@@ -160,11 +160,104 @@ fn backend_dir() -> Option<PathBuf> {
     None
 }
 
+/// Testa se algo já escuta em `127.0.0.1:port`.
+fn port_in_use(port: u16) -> bool {
+    TcpStream::connect_timeout(
+        &SocketAddr::from((Ipv4Addr::LOCALHOST, port)),
+        Duration::from_millis(200),
+    )
+    .is_ok()
+}
+
+/// Libera a porta antes de subir o backend: se um backend NOSSO de uma sessão
+/// anterior ficou preso nela (a app foi encerrada à força e o processo não
+/// morreu), o novo backend não consegue fazer bind e cai na tela "backend não
+/// ficou pronto em 60s". Aqui matamos só processos cujo comando contém
+/// `super_notepad` — nunca um processo não relacionado que por acaso use a porta.
+fn free_stale_backend(port: u16) {
+    if !port_in_use(port) {
+        return;
+    }
+    #[cfg(unix)]
+    {
+        // PIDs que ESCUTAM na porta (lsof faz parte do macOS; comum no Linux).
+        let Ok(out) = Command::new("lsof")
+            .args(["-ti", &format!("tcp:{port}"), "-sTCP:LISTEN"])
+            .stdin(Stdio::null())
+            .output()
+        else {
+            return;
+        };
+        let mut killed = false;
+        for pid in String::from_utf8_lossy(&out.stdout).split_whitespace() {
+            // Confirma que é um backend nosso antes de matar.
+            let is_ours = Command::new("ps")
+                .args(["-o", "command=", "-p", pid])
+                .stdin(Stdio::null())
+                .output()
+                .map(|o| String::from_utf8_lossy(&o.stdout).contains("super_notepad"))
+                .unwrap_or(false);
+            if is_ours {
+                let _ = Command::new("kill").arg("-9").arg(pid).status();
+                killed = true;
+            }
+        }
+        if killed {
+            // Dá um instante para o SO liberar a porta.
+            std::thread::sleep(Duration::from_millis(400));
+        }
+    }
+    #[cfg(windows)]
+    {
+        // netstat lista o PID do LISTENING na porta; confirma que é nosso via
+        // wmic antes de encerrar.
+        let Ok(out) = Command::new("netstat")
+            .args(["-ano", "-p", "tcp"])
+            .stdin(Stdio::null())
+            .output()
+        else {
+            return;
+        };
+        let text = String::from_utf8_lossy(&out.stdout);
+        let needle = format!(":{port} ");
+        let mut killed = false;
+        for line in text
+            .lines()
+            .filter(|l| l.contains(&needle) && l.contains("LISTENING"))
+        {
+            if let Some(pid) = line.split_whitespace().last() {
+                let is_ours = Command::new("wmic")
+                    .args([
+                        "process",
+                        "where",
+                        &format!("ProcessId={pid}"),
+                        "get",
+                        "CommandLine",
+                    ])
+                    .stdin(Stdio::null())
+                    .output()
+                    .map(|o| String::from_utf8_lossy(&o.stdout).contains("super_notepad"))
+                    .unwrap_or(false);
+                if is_ours {
+                    let _ = Command::new("taskkill").args(["/F", "/PID", pid]).status();
+                    killed = true;
+                }
+            }
+        }
+        if killed {
+            std::thread::sleep(Duration::from_millis(400));
+        }
+    }
+}
+
 fn spawn_backend(port: u16, path_override: Option<&str>) -> Result<String, String> {
     let python = resolve_python();
     let url_file = super_notepad_home().join("desktop_url.txt");
     // Começa limpo: uma URL velha de um arranque anterior confundiria o polling.
     let _ = std::fs::remove_file(&url_file);
+    // Robustez: mata um backend nosso que tenha sobrado preso na porta, senão o
+    // bind falha e o usuário vê "backend não ficou pronto".
+    free_stale_backend(port);
 
     let mut cmd = Command::new(&python);
     cmd.arg("-m")
